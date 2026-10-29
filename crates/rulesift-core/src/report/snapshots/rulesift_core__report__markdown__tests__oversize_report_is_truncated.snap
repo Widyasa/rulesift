@@ -9,4 +9,4 @@ expression: tail
 > **Note:** this comment was truncated at 60,000 characters. Run `rulesift scan` locally or see the JSON/SARIF report for the full list.
 
 ---
-<sub>[RuleSift](https://github.com/Widyasa/rulesift) v0.0.0-test · offline scan, no code was executed · [How to suppress](https://github.com/Widyasa/rulesift/blob/master/docs/configuration.md#suppressions)</sub>
+<sub>[RuleSift](https://github.com/Widyasa/rulesift) v0.0.0-test · offline scan, no code was executed · [How to suppress](https://github.com/Widyasa/rulesift/blob/master/docs/configuration.md#suppressing-findings)</sub>
