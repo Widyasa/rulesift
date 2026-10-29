@@ -11,6 +11,7 @@ authors.workspace = true
 publish = false
 
 [dependencies]
+comrak = { version = "0.55.0", default-features = false }
 globset = "0.4.21"
 ignore = "0.4.34"
 serde = { version = "1.0.229", features = ["derive"] }

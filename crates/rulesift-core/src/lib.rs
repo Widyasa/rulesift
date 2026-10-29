@@ -10,7 +10,9 @@ pub mod config;
 pub mod discovery;
 pub mod error;
 pub mod model;
+pub mod parse;
 pub mod registry;
+pub mod text;
 
 pub use error::{CoreError, Result};
 
