@@ -27,6 +27,47 @@ pub struct Frontmatter {
     pub key_lines: BTreeMap<String, usize>,
 }
 
+/// Lenient `key: value` reading for dialects whose frontmatter is not strict
+/// YAML (Cursor writes `globs: **/*.ts, src/**` unquoted). Every non-blank,
+/// non-comment line must be a top-level `key: value`; values are strings
+/// except `true`/`false` and the empty value (`null`). Returns `None` when
+/// any line does not fit, so real YAML errors still surface.
+pub fn lenient(raw: &str) -> Option<Value> {
+    let mut m = serde_json::Map::new();
+    for line in raw.lines() {
+        let t = line.trim_end();
+        if t.trim().is_empty() || t.trim_start().starts_with('#') {
+            continue;
+        }
+        let (k, v) = t.split_once(':')?;
+        let key_ok = !k.is_empty()
+            && k.chars()
+                .next()
+                .is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
+            && k.chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-');
+        if !key_ok {
+            return None;
+        }
+        let v = v.trim();
+        let val = match v {
+            "" => Value::Null,
+            "true" => Value::Bool(true),
+            "false" => Value::Bool(false),
+            _ => {
+                let unq = v
+                    .strip_prefix('"')
+                    .and_then(|x| x.strip_suffix('"'))
+                    .or_else(|| v.strip_prefix('\'').and_then(|x| x.strip_suffix('\'')))
+                    .unwrap_or(v);
+                Value::String(unq.to_string())
+            }
+        };
+        m.insert(k.to_string(), val);
+    }
+    Some(Value::Object(m))
+}
+
 impl Frontmatter {
     /// Top-level mapping, if the frontmatter parsed to one.
     pub fn mapping(&self) -> Option<&serde_json::Map<String, Value>> {
@@ -193,5 +234,27 @@ mod tests {
         let fm = split("---\nname: x\n").unwrap();
         assert!(!fm.closed);
         assert!(fm.value.is_err());
+    }
+}
+
+#[cfg(test)]
+mod lenient_tests {
+    use super::lenient;
+    use serde_json::json;
+
+    #[test]
+    fn cursor_style_globs() {
+        let v = lenient("description: Rust rules\nglobs: **/*.rs, src/**\nalwaysApply: false\n")
+            .unwrap();
+        assert_eq!(
+            v,
+            json!({"description": "Rust rules", "globs": "**/*.rs, src/**", "alwaysApply": false})
+        );
+    }
+
+    #[test]
+    fn rejects_non_key_lines() {
+        assert!(lenient("globs: **/*\n  - nested\n").is_none());
+        assert!(lenient("just text\n").is_none());
     }
 }

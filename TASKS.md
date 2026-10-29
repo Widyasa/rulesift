@@ -281,7 +281,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: doc test passes; SARIF `helpUri` points to these files.
   - Dep: W4-T7, W6-T1
 
-- [ ] **W6-T3 False-positive check and tuning**
+- [x] **W6-T3 False-positive check and tuning**
   - Description: `.github/workflows/fp-check.yml` (weekly + manual) per §14, cloning pinned commits of popular public skill and rules repos (e.g. `anthropics/skills`, `openai/skills`, plus one public repo each with Cursor, Copilot, and Gemini/Kiro rules) into a temp dir; tune rules until no file reaches `block`; record results in `docs/false-positives.md`.
   - Files: `.github/workflows/fp-check.yml`, `scripts/fp-check.sh`, `docs/false-positives.md`
   - Done when: workflow green; measured numbers documented with commit SHAs and date.

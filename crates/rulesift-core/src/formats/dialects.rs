@@ -130,7 +130,15 @@ pub fn validate(dialect: Dialect, fm: Option<&Frontmatter>) -> Vec<FormatIssue> 
         }
         return out;
     };
-    let map = match &fm.value {
+    let fallback = match (&fm.value, dialect) {
+        (Err(_), Dialect::CursorRule) => crate::parse::frontmatter::lenient(&fm.raw),
+        _ => None,
+    };
+    let value = match &fallback {
+        Some(v) => Ok(v),
+        None => fm.value.as_ref(),
+    };
+    let map = match value {
         Err((msg, line)) => {
             out.push(FormatIssue::new(
                 *line,
@@ -180,8 +188,15 @@ pub fn validate(dialect: Dialect, fm: Option<&Frontmatter>) -> Vec<FormatIssue> 
     out
 }
 
-fn get<'a>(fm: Option<&'a Frontmatter>, key: &str) -> Option<&'a Value> {
-    fm.and_then(|f| f.get(key))
+fn get(fm: Option<&Frontmatter>, key: &str) -> Option<Value> {
+    let f = fm?;
+    match &f.value {
+        Ok(_) => f.get(key).cloned(),
+        // Cursor-style unquoted globs (see `lenient`)
+        Err(_) => crate::parse::frontmatter::lenient(&f.raw)?
+            .get(key)
+            .cloned(),
+    }
 }
 
 /// Always-loaded predicate (PRD §5.1). `match_path` is the registry-relative
@@ -192,20 +207,23 @@ pub fn always_loaded(row: &RegistryRow, match_path: &str, fm: Option<&Frontmatte
         AlwaysLoaded::Never => false,
         AlwaysLoaded::RootOnly => !match_path.trim_start_matches("./").contains('/'),
         AlwaysLoaded::Frontmatter => match row.dialect {
-            Some(Dialect::CursorRule) => get(fm, "alwaysApply") == Some(&Value::Bool(true)),
+            Some(Dialect::CursorRule) => get(fm, "alwaysApply") == Some(Value::Bool(true)),
             Some(Dialect::ContinueRule) => match get(fm, "alwaysApply") {
-                Some(Value::Bool(b)) => *b,
+                Some(Value::Bool(b)) => b,
                 _ => get(fm, "globs").is_none() && get(fm, "regex").is_none(),
             },
             Some(Dialect::KiroSteering) => {
                 get(fm, "inclusion").is_none_or(|v| v.as_str() == Some("always"))
             }
             Some(Dialect::WindsurfRule) => {
-                get(fm, "trigger").and_then(Value::as_str) == Some("always_on")
+                get(fm, "trigger").as_ref().and_then(Value::as_str) == Some("always_on")
             }
             Some(Dialect::CopilotInstructions) => {
                 matches!(
-                    get(fm, "applyTo").and_then(Value::as_str).map(str::trim),
+                    get(fm, "applyTo")
+                        .as_ref()
+                        .and_then(Value::as_str)
+                        .map(str::trim),
                     Some("**") | Some("**/*")
                 )
             }
@@ -280,10 +298,17 @@ mod tests {
         assert_eq!(i.len(), 2);
         let fm = frontmatter::split("---\ninclusion: fileMatch\n---\n").unwrap();
         assert_eq!(validate(Dialect::KiroSteering, Some(&fm)).len(), 1);
-        let fm = frontmatter::split("---\na: [\n---\n").unwrap();
+        let fm = frontmatter::split("---\na: [\n  b\n---\n").unwrap();
         assert!(validate(Dialect::CursorRule, Some(&fm))[0]
             .message
             .contains("cannot be parsed"));
+        // Cursor's documented unquoted globs are accepted (lenient fallback)
+        let fm = frontmatter::split("---\nglobs: **/*.rs\nalwaysApply: true\n---\n").unwrap();
+        assert!(validate(Dialect::CursorRule, Some(&fm)).is_empty());
+        assert!(al(
+            ".cursor/rules/r.mdc",
+            "---\nglobs: **/*.rs\nalwaysApply: true\n---\nx\n"
+        ));
     }
 
     fn al(path: &str, text: &str) -> bool {
