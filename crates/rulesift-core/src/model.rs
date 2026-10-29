@@ -398,6 +398,82 @@ pub struct Report {
     pub summary: Summary,
     /// Files, sorted by path.
     pub files: Vec<FileReport>,
+    /// Capability changes (diff mode; empty for `scan`).
+    #[serde(default)]
+    pub changes: Vec<Change>,
+    /// Lockfile status.
+    #[serde(default)]
+    pub lock: LockStatus,
+}
+
+/// Direction of a capability change (PRD §6.3).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum ChangeOp {
+    /// `+` something new.
+    #[serde(rename = "+")]
+    Added,
+    /// `-` something removed.
+    #[serde(rename = "-")]
+    Removed,
+    /// `~` something changed.
+    #[serde(rename = "~")]
+    Changed,
+    /// `!` a lock violation.
+    #[serde(rename = "!")]
+    Lock,
+}
+
+impl ChangeOp {
+    /// The one-character symbol.
+    pub fn symbol(self) -> &'static str {
+        match self {
+            ChangeOp::Added => "+",
+            ChangeOp::Removed => "-",
+            ChangeOp::Changed => "~",
+            ChangeOp::Lock => "!",
+        }
+    }
+}
+
+/// One capability change between two revisions.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct Change {
+    /// Agent file path.
+    pub path: String,
+    /// `+`, `-`, `~`, or `!`.
+    pub op: ChangeOp,
+    /// What changed: `file`, `mcp_server`, `hook`, `permission`,
+    /// `allowed_tools`, `always_apply`, `instructions`, or `lock`.
+    pub what: String,
+    /// Name of the item (server name, hook event, permission rule), if any.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// English detail.
+    pub detail: String,
+}
+
+/// Lockfile state for a report.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct LockStatus {
+    /// Whether `rulesift.lock` exists.
+    pub present: bool,
+    /// Lock violations (RS-LOCK-00x).
+    #[serde(default)]
+    pub violations: Vec<LockViolation>,
+}
+
+/// One lockfile mismatch.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct LockViolation {
+    /// `RS-LOCK-001` changed, `-002` new and unlocked, `-003` missing.
+    pub rule_id: String,
+    /// File or skill path.
+    pub path: String,
+    /// MCP server name, for server entries.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// English message.
+    pub message: String,
 }
 
 impl Report {
@@ -533,6 +609,8 @@ mod tests {
             generated_at: None,
             summary: Report::summarize(&files),
             files,
+            changes: vec![],
+            lock: LockStatus::default(),
         };
         assert_eq!(r.summary.block, 1);
         assert_eq!(r.summary.repo_tier, Tier::Block);

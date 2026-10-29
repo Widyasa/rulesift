@@ -16,6 +16,7 @@ pub mod model;
 pub mod normalize;
 pub mod parse;
 pub mod registry;
+pub mod report;
 pub mod reveal;
 pub mod rules;
 pub mod scan;

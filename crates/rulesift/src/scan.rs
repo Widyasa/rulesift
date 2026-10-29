@@ -171,6 +171,7 @@ pub fn render(
 ) -> anyhow::Result<String> {
     match format {
         Format::Table => Ok(crate::table::render(r, code, color, quiet)),
+        Format::Json => Ok(rulesift_core::report::json::to_json(r)),
         other => bail!("--format {other:?} is not available yet"),
     }
 }

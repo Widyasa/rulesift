@@ -195,7 +195,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: `assert_cmd` snapshots for the `all-tools` repo (no color); exit code tests for each `--fail-on` value and for config errors (2).
   - Dep: W4-T4
 
-- [ ] **W4-T6 JSON report and schema**
+- [x] **W4-T6 JSON report and schema**
   - Description: §10.1 with `schema_version: 1`; commit `schemas/report.v1.json`; `--json <FILE>`.
   - Files: `core/report/json.rs`, `schemas/report.v1.json`
   - Done when: output validates against the schema in a test (`jsonschema` dev-dep); each file entry carries `tool` and `kind`; snapshot with redacted `generated_at` and version.
