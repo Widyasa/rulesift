@@ -57,7 +57,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: snapshot of segments for 3 fixtures (plain instructions, skill body, file with HTML comments and images); line numbers verified by tests.
   - Dep: W1-T3
 
-- [ ] **W1-T8 Frontmatter parser and skill format rules**
+- [x] **W1-T8 Frontmatter parser and skill format rules**
   - Description: split YAML frontmatter, parse with `serde-saphyr` (never `serde_yaml`), validate against the Agent Skills spec; emit RS-FMT-001..005 findings (temporarily as hard-coded checks; they move to YAML rules in W3-T3).
   - Files: `core/parse/frontmatter.rs`, `core/validate/skill.rs`, `tests/fixtures/skills/{valid,invalid-*}/SKILL.md`
   - Done when: one positive and one negative fixture per RS-FMT-001..005; error positions point at the frontmatter line.
