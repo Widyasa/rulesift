@@ -177,7 +177,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: fixtures for every rule across the relevant kinds and at least three different tools per MCP/hook rule; `${VAR}` env references do not trigger RS-MCP-002.
   - Dep: W2-T3, W2-T4, W2-T5, W3-T7
 
-- [ ] **W4-T3 Scoring**
+- [x] **W4-T3 Scoring**
   - Description: §9 incl. always-loaded multiplier, toxic-combination bonus, cap, repo score, configurable weights, per-file breakdown.
   - Files: `core/score.rs`
   - Done when: table-driven tests cover each rule of §9 and config overrides.
