@@ -1,0 +1,17 @@
+---
+source: crates/rulesift-core/src/parse/markdown.rs
+expression: "render(&parse(&fixture(\"plain-instructions.md\")))"
+---
+1:3-1 heading "Project instructions"
+3:1-4 text "Use TypeScript strict mode and keep functions small.\nRun  before every commit."
+4:5-4 inline_code "npm test"
+6:4-6 heading "Style"
+8:3-8 text "Prefer  over ."
+8:10-8 inline_code "const"
+8:23-8 inline_code "let"
+9:3-10 text "Write tests for new code.\nNested continuation line."
+12:3-12 text "Command"
+12:13-12 text "Purpose"
+14:3-14 inline_code "npm run lint"
+14:20-14 text "Lint the code"
+16:5-16 code_block "indented code block\n"

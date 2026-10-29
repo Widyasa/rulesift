@@ -51,7 +51,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: snapshot of the classified file list (path, tool, kind) for the `all-tools` fixture repo; tests for size limit, binary skip, symlink escape, and exclude globs.
   - Dep: W1-T4, W1-T5
 
-- [ ] **W1-T7 Markdown parser to segments**
+- [x] **W1-T7 Markdown parser to segments**
   - Description: `comrak` with sourcepos; produce `text`, `heading`, `code_block` (with language), `inline_code`, `html_comment`, `link_url`, `image_url` segments with correct line/column. Record the comrak vs pulldown-cmark choice in the PR.
   - Files: `core/parse/markdown.rs`
   - Done when: snapshot of segments for 3 fixtures (plain instructions, skill body, file with HTML comments and images); line numbers verified by tests.

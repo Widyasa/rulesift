@@ -1,0 +1,13 @@
+---
+source: crates/rulesift-core/src/parse/markdown.rs
+expression: "render(&parse(&fixture(\"comments-images.md\")))"
+---
+1:3-1 heading "Release notes"
+3:6-3 html_comment "reviewer: this comment is invisible in rendered Markdown"
+5:1-5 text "Here is the logo: logo"
+5:19-5 image_url "https://x.example/logo.png"
+7:1-7 text "Inline comment  in a sentence."
+7:21-7 html_comment "inline hidden text"
+10:1-12 html_comment "multi-line\ncomment body"
+14:1-14 text "Final paragraph with a link."
+14:24-14 link_url "https://x.example/page?ref=docs"
