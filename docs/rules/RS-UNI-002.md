@@ -8,7 +8,7 @@
 
 The file contains bidirectional control characters, which can make text display differently from how it is read (Trojan Source).
 
-In JSON, TOML, and YAML agent files (MCP configs, hooks, settings, plugin manifests) the characters are also found when they are written as escape sequences such as `\u202E` inside a string value, because the agent sees them once it decodes the file.
+In JSON, TOML, and YAML agent files (MCP configs, hooks, settings, plugin manifests) the characters are also found when they are written as escape sequences such as `\u202E` inside a string value or an object key (for example an MCP server name), and the same holds for keys and quoted strings in the YAML frontmatter of `SKILL.md`, `.mdc`, and other Markdown files, because the agent sees them once it decodes the file.
 
 ## Why it matters
 

@@ -56,6 +56,11 @@ pub struct Analyzed {
     pub dialect_issues: Vec<FormatIssue>,
     /// RS-FMT-001..005 issues (SKILL.md only).
     pub skill_issues: Vec<SkillIssue>,
+    /// Object keys of structured files and string keys and values of
+    /// frontmatter, decoded. They are not scanned by regular rules (their
+    /// raw text already is); the hidden-character detectors check them for
+    /// characters written as escapes (#125).
+    pub escaped_strings: Vec<Segment>,
 }
 
 impl Analyzed {
@@ -126,6 +131,83 @@ fn value_segments(text: &str, value: &Value, lines: &BTreeMap<String, usize>) ->
     out
 }
 
+/// Strings that may hold escaped hidden characters but are not `json_string`
+/// segments: object keys of the structured value (JSON, TOML, YAML), and
+/// frontmatter keys and string values (#125). The span is the source line.
+fn escaped_strings(text: &str, a: &Analyzed) -> Vec<Segment> {
+    let li = LineIndex::new(text);
+    let mut out = Vec::new();
+    let mut push = |s: &str, line: usize, ptr: String| {
+        if !s.contains(|c: char| !c.is_ascii()) {
+            return; // escapes of hidden characters decode to non-ASCII
+        }
+        let start = li.line_start(line);
+        let end = li.line_start(line + 1).max(start);
+        let mut seg = Segment::new(
+            Scope::JsonString,
+            s.to_string(),
+            Span { start, end },
+            line,
+            1,
+            line,
+        );
+        seg.pointer = Some(ptr);
+        out.push(seg);
+    };
+    // object keys of the structured value
+    if let Some(v) = &a.value {
+        let mut stack: Vec<(String, &Value)> = vec![(String::new(), v)];
+        while let Some((ptr, v)) = stack.pop() {
+            match v {
+                Value::Array(x) => {
+                    for (i, x) in x.iter().enumerate() {
+                        stack.push((format!("{ptr}/{i}"), x));
+                    }
+                }
+                Value::Object(m) => {
+                    for (k, x) in m {
+                        let p = format!("{ptr}/{}", json::escape_token(k));
+                        push(k, a.line_of(&p), p.clone());
+                        stack.push((p, x));
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    // frontmatter keys and string values, at the line of their top-level key
+    if let Some(fm) = &a.frontmatter {
+        if let Some(m) = fm.mapping() {
+            for (top, v) in m {
+                let line = fm.line_of(top);
+                let mut stack: Vec<(String, &Value)> =
+                    vec![(format!("/{}", json::escape_token(top)), v)];
+                push(top, line, format!("/{}", json::escape_token(top)));
+                while let Some((ptr, v)) = stack.pop() {
+                    match v {
+                        Value::String(s) => push(s, line, ptr),
+                        Value::Array(x) => {
+                            for (i, x) in x.iter().enumerate() {
+                                stack.push((format!("{ptr}/{i}"), x));
+                            }
+                        }
+                        Value::Object(o) => {
+                            for (k, x) in o {
+                                let p = format!("{ptr}/{}", json::escape_token(k));
+                                push(k, line, p.clone());
+                                stack.push((p, x));
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+    out.sort_by_key(|s| (s.span.start, s.pointer.clone()));
+    out
+}
+
 /// JSON pointer → line map for every node of a parsed JSON document.
 fn json_lines(doc: &json::JsonDoc) -> BTreeMap<String, usize> {
     doc.positions
@@ -168,6 +250,7 @@ pub fn analyze(
         format_issues: Vec::new(),
         dialect_issues: Vec::new(),
         skill_issues: Vec::new(),
+        escaped_strings: Vec::new(),
     };
     let mut segs: Vec<Segment> = Vec::new();
     let families = row.parsers;
@@ -290,6 +373,7 @@ pub fn analyze(
         ))
     });
     a.doc.segments = segs;
+    a.escaped_strings = escaped_strings(text, &a);
     a.format_issues.sort_by_key(|i| i.line);
     a.doc.always_loaded = dialects::always_loaded(row, match_path, a.frontmatter.as_ref());
     a

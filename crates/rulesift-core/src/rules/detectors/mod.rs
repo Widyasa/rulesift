@@ -203,9 +203,11 @@ fn unscannable(li: &crate::text::LineIndex, a: &crate::analyze::Analyzed) -> Vec
 }
 
 /// Add hits for hidden characters that only exist after decoding a string
-/// value, e.g. a JSON `\u202E` escape in `.mcp.json` (#104). Raw characters
-/// are already found in the file text; only string values whose decoded text
-/// is not a verbatim slice of the file are checked again.
+/// value, e.g. a JSON `\u202E` escape in `.mcp.json` (#104), or an object
+/// key or frontmatter string (#125). Raw characters are already found in the
+/// file text; only strings whose decoded text is not a verbatim slice of the
+/// file are checked again, and a hit is kept only if its text does not occur
+/// verbatim in the file.
 fn with_escaped(
     a: &crate::analyze::Analyzed,
     mut locs: Vec<Loc>,
@@ -217,6 +219,7 @@ fn with_escaped(
         .segments
         .iter()
         .filter(|s| s.scope == crate::model::Scope::JsonString)
+        .chain(a.escaped_strings.iter())
     {
         let verbatim = text
             .get(seg.span.start..seg.span.end)
@@ -225,6 +228,13 @@ fn with_escaped(
             continue;
         }
         for h in f(&seg.text) {
+            if seg
+                .text
+                .get(h.start..h.end)
+                .is_some_and(|s| !s.is_empty() && text.contains(s))
+            {
+                continue; // written raw: already reported from the file text
+            }
             locs.push(Loc {
                 span: seg.span,
                 line: seg.line,
@@ -233,7 +243,7 @@ fn with_escaped(
                 evidence: h.evidence,
                 decoded: h.decoded,
                 message: Some(format!(
-                    "{} They are written as escape sequences in a string value, so they are invisible in the file but present once the agent decodes it.",
+                    "{} They are written as escape sequences in a quoted string or key, so they are invisible in the file but present once the agent decodes it.",
                     h.message
                 )),
                 synthetic: false,
