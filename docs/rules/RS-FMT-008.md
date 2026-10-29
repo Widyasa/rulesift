@@ -10,8 +10,14 @@ A file at an agent-file location that RuleSift could not fully scan:
 
 - it is larger than `max_file_size_kib` (default 2048 KiB);
 - it cannot be read (for example permission denied);
-- it is a symlink, or a directory symlink at an agent-file location such as
-  `.cursor/rules/shared`, that points outside the scan root;
+- it is a symlink, or a directory symlink at an agent-file location, that
+  points outside the scan root. A directory counts when agent files could
+  live in it: any directory on a registry path (`.claude`, `.cursor/rules`,
+  `.cursor/rules/shared`, `.github/instructions`, a plugin's
+  `.claude-plugin`, …) and any directory at or below a `skills` directory
+  (`.claude/skills`, `.claude/skills/<name>`, `skills/<name>/scripts`).
+  Other directory symlinks (`vendor`, `node_modules`) are skipped with a
+  warning;
 - it contains NUL bytes. The file is still scanned as text, so other rules
   fire on its content too.
 

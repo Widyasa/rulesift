@@ -83,6 +83,12 @@ Release-gate QA findings (#99–#109):
   a missing `--config` or `--baseline` file prints the OS error once; unknown
   rule ids in `--disable`, `[rules].disable`, or `severity_override` print a
   warning unless `-q` (#120).
+- A directory symlink pointing outside the scan root fails closed with
+  RS-FMT-008 wherever agent files could live, derived from the registry
+  rather than a fixed probe list: this now covers symlinked skill
+  directories (`.claude/skills`, `.claude/skills/<name>`, a skill's
+  `scripts/`), `.claude`, `.github/instructions`, and the other tool
+  directories (#122).
 
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0
