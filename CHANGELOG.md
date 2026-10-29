@@ -94,6 +94,11 @@ Release-gate QA findings (#99–#109):
   `max_file_size_kib`: they are scanned as text with RS-FMT-008, or reported
   as RS-FMT-008 when too large or unreadable. Only binary assets (judged by
   content, not just the extension) are skipped with a warning (#123).
+- RS-EXEC-001 again flags downloads piped into an inline program that
+  executes stdin (`python3 -c "exec(sys.stdin.read())"`, `node -e
+  "eval(…readFileSync(0))"`, `perl -e 'eval …<STDIN>'`), scripts read from
+  `/dev/stdin`, and `pip install -r /dev/stdin`, while data-only inline
+  programs such as `python3 -c "…json.load(sys.stdin)…"` stay quiet (#124).
 
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0
