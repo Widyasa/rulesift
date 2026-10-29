@@ -149,7 +149,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: one positive and one negative fixture per rule; INJ rules do not fire on code blocks; at least one fixture each for a non-Claude tool (e.g. `GEMINI.md`, `.kiro/steering`).
   - Dep: W3-T5
 
-- [ ] **W3-T7 Execution rules**
+- [x] **W3-T7 Execution rules**
   - Description: RS-EXEC-001..005.
   - Files: `rules/builtin/exec.yaml`, fixtures
   - Done when: positive/negative fixtures per rule, incl. PowerShell variants and `decoded` scope.

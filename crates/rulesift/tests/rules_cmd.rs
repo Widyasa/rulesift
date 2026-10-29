@@ -22,7 +22,11 @@ fn list_contains_builtins() {
     let (code, out, _) = stdout(bin().args(["rules", "list"]));
     assert_eq!(code, Some(0));
     assert!(out.starts_with("ID"));
-    assert!(out.contains("RS-UNI-001  critical  Hidden Unicode Tag characters"));
+    let squeezed: Vec<String> = out
+        .lines()
+        .map(|l| l.split_whitespace().collect::<Vec<_>>().join(" "))
+        .collect();
+    assert!(squeezed.contains(&"RS-UNI-001 critical Hidden Unicode Tag characters".to_string()));
     let ids: Vec<&str> = out
         .lines()
         .skip(1)
@@ -83,4 +87,11 @@ fn test_good_bad_failing() {
     );
     let (code, _, _) = stdout(bin().args(["rules", "test", "../../tests/fixtures/nope"]));
     assert_eq!(code, Some(2));
+}
+
+#[test]
+fn show_exec_snapshot() {
+    let (code, out, _) = stdout(bin().args(["rules", "show", "RS-EXEC-001"]));
+    assert_eq!(code, Some(0));
+    insta::assert_snapshot!("show_rs_exec_001", out);
 }

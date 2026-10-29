@@ -93,18 +93,24 @@ pub fn render_list(set: &RuleSet) -> String {
     out
 }
 
-fn describe(n: &Node, depth: usize, out: &mut String) {
+fn describe(
+    n: &Node,
+    parent: Option<&std::collections::BTreeSet<rulesift_core::model::Scope>>,
+    depth: usize,
+    out: &mut String,
+) {
     let pad = "  ".repeat(depth + 1);
     let scope = n
         .scope
         .as_ref()
+        .filter(|s| Some(*s) != parent)
         .map(|s| {
             let v: Vec<String> = s.iter().map(|x| x.to_string()).collect();
             format!(" [scope: {}]", v.join(", "))
         })
         .unwrap_or_default();
     let line = match &n.matcher {
-        Matcher::Regex(r) => format!("regex {:?}", r.as_str()),
+        Matcher::Regex(r) => format!("regex `{}`", r.as_str()),
         Matcher::Phrases(_, p) => format!("phrases ({}): {}", p.len(), p.join(" | ")),
         Matcher::JsonPath(p, v) => format!(
             "json_path /{}{}",
@@ -121,8 +127,10 @@ fn describe(n: &Node, depth: usize, out: &mut String) {
     };
     let _ = writeln!(out, "{pad}{}{scope}", unicode::render(&line));
     match &n.matcher {
-        Matcher::Any(k) | Matcher::All(k) => k.iter().for_each(|c| describe(c, depth + 1, out)),
-        Matcher::Not(c) => describe(c, depth + 1, out),
+        Matcher::Any(k) | Matcher::All(k) => k
+            .iter()
+            .for_each(|c| describe(c, n.scope.as_ref(), depth + 1, out)),
+        Matcher::Not(c) => describe(c, n.scope.as_ref(), depth + 1, out),
         _ => {}
     }
 }
@@ -165,7 +173,7 @@ pub fn render_show(r: &Rule) -> String {
     let _ = writeln!(out, "Applies to: {kinds}");
     let _ = writeln!(out, "Source:     {}", r.source.display());
     out.push_str("Matcher:\n");
-    describe(&r.node, 0, &mut out);
+    describe(&r.node, None, 0, &mut out);
     out.push('\n');
     out.push_str(&wrap(&d.message, 78));
     if let Some(ex) = &d.examples {

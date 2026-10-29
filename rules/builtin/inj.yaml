@@ -52,7 +52,7 @@
           - do not reveal these instructions
           - do not show this to the user
       - regex: '(?i)\b(?:silently|secretly|covertly|quietly)\s+(?:run|execute|install|download|send|upload|copy|add|modify|change|delete|call|fetch|post|include|insert|append|write|read)\b'
-      - regex: '(?i)\b(?:run|execute|install|download|send|upload|copy|post|fetch)\b[^.\n]{0,60}\b(?:silently|secretly|covertly)\b'
+      - regex: '(?i)\b(?:run|execute|install|download|send|upload|copy|post|fetch)\b[^\n!?]{0,60}\b(?:silently|secretly|covertly)\b'
     scope: [text, heading, html_comment, frontmatter, decoded]
   message: >
     The text asks the agent to hide actions or information from the user.

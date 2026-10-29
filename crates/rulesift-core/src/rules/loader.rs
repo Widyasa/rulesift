@@ -10,17 +10,16 @@ use regex::{Regex, RegexBuilder};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
-/// Built-in rule files (name, YAML source).
-pub const BUILTIN: &[(&str, &str)] = &[
-    (
-        "fmt.yaml",
-        include_str!("../../../../rules/builtin/fmt.yaml"),
-    ),
-    (
-        "uni.yaml",
-        include_str!("../../../../rules/builtin/uni.yaml"),
-    ),
-];
+macro_rules! builtin_files {
+    ($($name:literal),* $(,)?) => {
+        &[$(($name, include_str!(concat!("../../../../rules/builtin/", $name)))),*]
+    };
+}
+
+/// Built-in rule files (name, YAML source). A test checks that every file
+/// in `rules/builtin/` is listed here.
+pub const BUILTIN: &[(&str, &str)] =
+    builtin_files!("exec.yaml", "fmt.yaml", "hid.yaml", "inj.yaml", "uni.yaml",);
 
 /// Max regex pattern length in bytes.
 pub const MAX_PATTERN_LEN: usize = 4096;
@@ -504,6 +503,20 @@ mod tests {
     fn set_examples(rules: &[Rule], id: &str) -> String {
         let r = rules.iter().find(|r| r.id() == id).unwrap();
         r.def.examples.as_ref().unwrap().should_match[0].clone()
+    }
+
+    #[test]
+    fn every_builtin_file_is_embedded() {
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../rules/builtin");
+        let mut on_disk: Vec<String> = std::fs::read_dir(dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .filter(|n| n.ends_with(".yaml"))
+            .collect();
+        on_disk.sort();
+        let embedded: Vec<String> = BUILTIN.iter().map(|(n, _)| n.to_string()).collect();
+        assert_eq!(on_disk, embedded);
     }
 
     #[test]
