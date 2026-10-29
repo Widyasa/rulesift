@@ -1,0 +1,33 @@
+---
+source: crates/rulesift/tests/init_cmd.rs
+expression: out
+---
+# RuleSift MCP server (stdio, read-only tools). RuleSift never writes these files.
+
+## Cursor: .cursor/mcp.json (project) or ~/.cursor/mcp.json (global)
+{
+  "mcpServers": {
+    "rulesift": {
+      "command": "rulesift",
+      "args": ["mcp"]
+    }
+  }
+}
+
+## Claude Code: .mcp.json at the project root, or run
+##   claude mcp add --scope project rulesift -- rulesift mcp
+{
+  "mcpServers": {
+    "rulesift": {
+      "type": "stdio",
+      "command": "rulesift",
+      "args": ["mcp"]
+    }
+  }
+}
+
+## Codex: ~/.codex/config.toml, or run
+##   codex mcp add rulesift -- rulesift mcp
+[mcp_servers.rulesift]
+command = "rulesift"
+args = ["mcp"]
