@@ -4,6 +4,7 @@
 
 mod cli;
 mod reveal;
+mod rules;
 
 use clap::Parser;
 use std::process::ExitCode;

@@ -1,0 +1,6 @@
+- id: ACME-002
+  title: Broken regex
+  severity: low
+  match:
+    regex: '(unclosed'
+  message: Broken.

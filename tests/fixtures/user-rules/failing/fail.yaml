@@ -1,0 +1,9 @@
+- id: ACME-003
+  title: Example that does not match
+  severity: low
+  match:
+    phrases: ["forbidden phrase"]
+  message: Demo.
+  examples:
+    should_match: ["this text is fine"]
+    should_not_match: ["also fine"]

@@ -137,7 +137,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: unit tests per matcher and combinator; findings sorted deterministically.
   - Dep: W3-T3
 
-- [ ] **W3-T5 `rulesift rules list|show|test`**
+- [x] **W3-T5 `rulesift rules list|show|test`**
   - Description: CLI per §6.5; `test` runs `examples.should_match` / `should_not_match`. Add a test that runs every built-in rule's examples.
   - Files: `cli/rules.rs`
   - Done when: all built-in examples pass in CI; `show RS-EXEC-001` snapshot.

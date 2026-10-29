@@ -43,6 +43,8 @@ pub struct GlobalArgs {
 pub enum Command {
     /// Show hidden characters, decoded text, base64 payloads, and HTML comments in a file.
     Reveal(crate::reveal::RevealArgs),
+    /// List, show, or test rules.
+    Rules(crate::rules::RulesArgs),
 }
 
 /// Run the parsed command line.
@@ -53,6 +55,7 @@ pub fn run(cli: Cli) -> anyhow::Result<ExitCode> {
     }
     match cli.command {
         Some(Command::Reveal(a)) => crate::reveal::run(&cli.global, &a),
+        Some(Command::Rules(a)) => crate::rules::run(&cli.global, &a),
         None => {
             use clap::CommandFactory;
             Cli::command().print_help()?;
