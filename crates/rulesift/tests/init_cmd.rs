@@ -111,3 +111,61 @@ fn pre_commit_hooks_file_is_generated_from_registry() {
         assert!(re.is_match(&f.match_path), "{}", f.match_path);
     }
 }
+
+#[test]
+fn agent_blocks_are_idempotent_and_scan_clean() {
+    let d = tempfile::tempdir().unwrap();
+    std::fs::write(d.path().join("AGENTS.md"), "# Project\n\nUse tabs.\n").unwrap();
+    let args = [
+        "init", "--agent", "agents", "--agent", "claude", "--agent", "cursor",
+    ];
+    let (code, _, err) = run(bin(d.path()).args(args));
+    assert_eq!(code, Some(0), "{err}");
+    let files = ["AGENTS.md", "CLAUDE.md", ".cursor/rules/rulesift.mdc"];
+    let read = |f: &str| std::fs::read_to_string(d.path().join(f)).unwrap();
+    let first: Vec<String> = files.iter().map(|f| read(f)).collect();
+    assert!(first[0].starts_with("# Project\n\nUse tabs.\n\n<!-- rulesift:start -->"));
+    assert!(!d.path().join("rulesift.toml").exists());
+    let (code, out, _) = run(bin(d.path()).args(args));
+    assert_eq!(code, Some(0));
+    assert!(out.contains("already has the RuleSift block"), "{out}");
+    let second: Vec<String> = files.iter().map(|f| read(f)).collect();
+    assert_eq!(first, second);
+    insta::assert_snapshot!("init_agent_cursor_mdc", first[2]);
+    // the block itself must not trip RuleSift
+    let (code, out, err) = run(bin(d.path()).args(["scan", ".", "--no-color"]));
+    assert_eq!(code, Some(0), "{out}\n{err}");
+}
+
+#[test]
+fn print_mcp_config_snapshot() {
+    let d = tempfile::tempdir().unwrap();
+    let (code, out, _) = run(bin(d.path()).args(["init", "--print-mcp-config"]));
+    assert_eq!(code, Some(0));
+    assert!(
+        std::fs::read_dir(d.path()).unwrap().next().is_none(),
+        "writes nothing"
+    );
+    // each snippet parses in its own format: JSON objects start with `{` at column 0
+    let lines: Vec<&str> = out.lines().collect();
+    let mut jsons = 0;
+    let mut k = 0;
+    while k < lines.len() {
+        if lines[k] == "{" {
+            let end = (k..lines.len()).find(|&e| lines[e] == "}").unwrap();
+            let v: serde_json::Value = serde_json::from_str(&lines[k..=end].join("\n")).unwrap();
+            assert_eq!(v["mcpServers"]["rulesift"]["args"][0], "mcp");
+            jsons += 1;
+            k = end;
+        }
+        k += 1;
+    }
+    assert_eq!(jsons, 2);
+    let toml_part = &out[out.find("[mcp_servers.rulesift]").unwrap()..];
+    let t: toml::Value = toml::from_str(toml_part).unwrap();
+    assert_eq!(
+        t["mcp_servers"]["rulesift"]["command"].as_str(),
+        Some("rulesift")
+    );
+    insta::assert_snapshot!("init_print_mcp_config", out);
+}

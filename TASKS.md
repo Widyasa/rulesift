@@ -259,7 +259,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: snapshot tests of built commands and prompts; output parsing from fixture stdout; tests use fake scripts on a temp `PATH`; real agents only behind `RULESIFT_E2E_AGENT=1` + `#[ignore]`.
   - Dep: W4-T6
 
-- [ ] **W5-T8 `init --agent` and `--print-mcp-config`**
+- [x] **W5-T8 `init --agent` and `--print-mcp-config`**
   - Description: §11.3 marked block for `agents`, `claude`, `cursor` (idempotent); print MCP config snippets for Cursor, Claude Code, Codex.
   - Files: `cli/init.rs`
   - Done when: running twice yields identical files; snapshot of printed configs.
