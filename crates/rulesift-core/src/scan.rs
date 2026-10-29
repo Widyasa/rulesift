@@ -49,6 +49,7 @@ pub fn analyze_file(f: &DiscoveredFile) -> Analyzed {
         .map(|d| d.trim_end_matches('/').rsplit('/').next().unwrap_or(d));
     let mut a = analyze(&f.path, &f.match_path, f.row, dir_name, &f.text);
     a.stable_path = Some(f.stable_path.clone());
+    a.unscannable = f.unscannable.clone();
     a
 }
 
@@ -126,6 +127,14 @@ pub fn scan(rules: &RuleSet, opts: &ScanOptions) -> Result<ScanOutput> {
             files,
             changes: vec![],
             lock: Default::default(),
+            warnings: d
+                .warnings
+                .iter()
+                .map(|w| crate::model::ReportWarning {
+                    path: w.path.clone(),
+                    message: w.message.clone(),
+                })
+                .collect(),
         },
         warnings: d.warnings,
         analyzed,

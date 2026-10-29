@@ -60,7 +60,7 @@ Agent instruction files are effectively executable: they tell an agent with shel
 
 ### 4.1 Goals (MVP v0.1.0)
 - Discover and parse all MVP formats (§5 F1) in a repo or a given path.
-- Ship 39 built-in content rules + 3 lock checks (§8) with harmless fixtures, each with English docs.
+- Ship 40 built-in content rules (39 planned + RS-FMT-008, added after the release-gate QA, #100) + 3 lock checks (§8) with harmless fixtures, each with English docs.
 - Deterministic risk score per file and per repo (§9).
 - `scan`, `diff`, `lock`, `verify`, `reveal`, `rules`, `init`, `mcp` commands (§6).
 - Outputs: table, JSON, SARIF, Markdown (§10).
@@ -159,7 +159,7 @@ Out of scope (global-only per docs, not in a repo): Windsurf `mcp_config.json`, 
 
 Always-loaded predicate (used by §9): root `AGENTS.md`, `CLAUDE.md`, `CLAUDE.local.md`, `GEMINI.md`, `.rules`, `.github/copilot-instructions.md`, `.cursorrules`, `.windsurfrules`, `.clinerules` / `.cline/rules/**`, `.roo/rules/**`, `.roorules`, `.junie/*` guidelines, `.amazonq/rules/**`; frontmatter-driven: Cursor/Continue `alwaysApply: true` (Continue also when no `globs`), Kiro `inclusion: always` or missing, Windsurf rule activation "always on", Copilot `applyTo: "**"`; plus all `hooks` and `settings`.
 
-Acceptance: a fixture repo `tests/fixtures/repos/all-tools/` containing one file per MVP registry row is fully classified with `tool` and `kind` (snapshot); binary files and files > 2 MiB are skipped with a warning; symlinks are not followed outside the root; non-UTF-8 files are scanned lossily with a warning; `docs/supported-tools.md` is generated from the registry and a test fails if it is stale.
+Acceptance: a fixture repo `tests/fixtures/repos/all-tools/` containing one file per MVP registry row is fully classified with `tool` and `kind` (snapshot); agent files that cannot be scanned (NUL bytes are scanned as text; > 2 MiB, unreadable, or symlinks outside the root) are reported as RS-FMT-008 instead of being skipped silently (#100), while binary or large auxiliary files inside skill directories are skipped with a warning; UTF-16 is decoded; symlinks are not followed outside the root; non-UTF-8 files are scanned lossily with a warning; `docs/supported-tools.md` is generated from the registry and a test fails if it is stale.
 
 Exact field names must be re-checked against the linked docs at implementation time; deviations go in the PR and this table.
 
@@ -332,6 +332,7 @@ Severity: `critical | high | medium | low`. "Detector" means implemented in Rust
 | RS-FMT-005 | Unknown frontmatter field (allowed: name, description, license, compatibility, metadata, allowed-tools) or `compatibility` > 500 | low | skill | frontmatter |
 | RS-FMT-006 | Invalid frontmatter for the tool's dialect (e.g. Cursor/Continue `alwaysApply` not bool, Kiro `inclusion` unknown, Copilot `applyTo` not a string, Claude agent missing `name`/`description`) | low | instructions, command, agent | frontmatter |
 | RS-FMT-007 | Invalid JSON/TOML/YAML or missing required field in an MCP config, hooks file, settings, or plugin manifest | medium | mcp-config, hooks, settings, plugin | detector |
+| RS-FMT-008 | Agent file could not be scanned: larger than `max_file_size_kib`, unreadable, symlink outside the scan root, or NUL bytes (added for #100) | critical | all | detector |
 | RS-UNI-001 | Hidden Unicode Tag characters (decoded text shown) | critical | all | detector `unicode_tags` |
 | RS-UNI-002 | Bidirectional control characters | high | all | detector `bidi` |
 | RS-UNI-003 | Zero-width characters inside words or runs (BOM at offset 0 allowed) | medium | all | detector `zero_width` |

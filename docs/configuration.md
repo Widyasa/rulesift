@@ -24,7 +24,7 @@ Unknown keys are an error.
 | `exclude` | `["node_modules/**", "target/**"]` | Globs (relative to the scanned directory) to skip |
 | `kinds` | all | `skill`, `instructions`, `command`, `agent`, `mcp-config`, `hooks`, `settings`, `plugin` |
 | `tools` | `[]` (all) | Tool ids from [supported-tools.md](supported-tools.md), e.g. `["cursor", "gemini-cli"]` |
-| `max_file_size_kib` | `2048` | Larger files are skipped with a warning |
+| `max_file_size_kib` | `2048` | Larger agent files are not scanned and are reported as [RS-FMT-008](rules/RS-FMT-008.md) (critical); larger auxiliary files inside a skill directory are skipped with a warning |
 
 The command-line flags `--kinds`, `--tools`, `--include`, and `--exclude`
 override these for one run.

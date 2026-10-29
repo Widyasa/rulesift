@@ -108,6 +108,7 @@ pub(crate) mod tests {
             files,
             changes: vec![],
             lock: LockStatus::default(),
+            warnings: vec![],
         }
     }
 

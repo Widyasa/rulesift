@@ -321,6 +321,7 @@ mod tests {
                 })
                 .collect(),
             lock: Default::default(),
+            warnings: vec![],
         };
         let md = to_markdown(&r);
         assert!(

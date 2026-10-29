@@ -19,7 +19,7 @@ First public release. The release date is set by the maintainer when the tag is 
 - Parsers for Markdown, frontmatter, MCP configs (JSON/YAML/TOML), hooks,
   settings, and plugin manifests. A normalizer decodes Unicode Tags, base64
   payloads, and HTML comments.
-- 39 built-in YAML rules, each with docs in `docs/rules/`, plus a rule
+- 40 built-in YAML rules, each with docs in `docs/rules/`, plus a rule
   engine and user rules (`--rules`, `rulesift rules test`).
 - Risk scores and tiers (block/review/info/ok) with an always-loaded
   multiplier and a toxic-combination bonus.
@@ -47,6 +47,14 @@ Release-gate QA findings (#99–#109):
   stable root (config directory, git work tree, or scanned directory), so
   baselines match however and wherever a scan runs, and the test suite passes
   in any checkout (#99, #101).
+- Agent files that could not be scanned were skipped silently (exit 0,
+  "scanned 0 agent files"). They now fail closed: new critical rule
+  RS-FMT-008 for files larger than `max_file_size_kib`, unreadable files,
+  and symlinks (or agent-location directory symlinks) pointing outside the
+  scan root. Files with NUL bytes are scanned as text and also flagged.
+  UTF-16 files are decoded and scanned. Discovery warnings are printed
+  without `-v` (`-q` hides them) and appear in JSON (`warnings`) and SARIF
+  (tool execution notifications) (#100).
 
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0

@@ -86,3 +86,12 @@ Exit codes:
 | 0 | Pass |
 | 1 | Policy failure: a tier threshold was reached or lock verification failed |
 | 2 | Usage, config, or git error |
+
+An agent file that RuleSift cannot scan (larger than `max_file_size_kib`,
+unreadable, a symlink pointing outside the scan root, or containing NUL bytes)
+is never dropped silently. It is reported as the critical finding
+[RS-FMT-008](rules/RS-FMT-008.md), so the file is `block` and the default
+policy exits 1. The reason is also printed on stderr (hidden by `-q`), listed
+in the JSON report's `warnings`, and added to SARIF as a tool execution
+notification. Accept a specific file with a `[[suppress]]` entry or a
+baseline. UTF-16 agent files are decoded and scanned normally.

@@ -23,4 +23,6 @@ pub fn canonicalize(r: &mut Report) {
     }
     r.changes.sort();
     r.lock.violations.sort();
+    r.warnings.sort();
+    r.warnings.dedup();
 }
