@@ -269,7 +269,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
 
 ## Week 6: Multi-tool polish, quality, and release
 
-- [ ] **W6-T1 Supported-tools docs and compatibility fixture**
+- [x] **W6-T1 Supported-tools docs and compatibility fixture**
   - Description: generate `docs/supported-tools.md` from the registry (tool, path, kind, release, doc link); extend `tests/fixtures/repos/all-tools/` so every MVP row has a positive finding; add an end-to-end snapshot of `rulesift scan` on it; re-check each §5.1 doc link and record the date.
   - Files: `docs/supported-tools.md`, `tests/fixtures/repos/all-tools/**`, `tests/registry_docs.rs`
   - Done when: a test fails if the doc is stale vs. the registry; every MVP row appears with at least one finding in the snapshot.

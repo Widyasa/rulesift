@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "docs": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "example-docs-mcp"
+      ],
+      "trust": true
+    }
+  }
+}

@@ -802,6 +802,61 @@ pub fn mvp_rows() -> impl Iterator<Item = &'static RegistryRow> {
     ROWS.iter().filter(|r| r.release == Release::Mvp)
 }
 
+/// Date the registry's doc links were last re-checked (PRD §5.1).
+pub const DOCS_CHECKED: &str = "2026-10-29";
+
+/// Render `docs/supported-tools.md` from the registry.
+pub fn render_markdown() -> String {
+    let mut out = format!(
+        "# Supported tools
+
+<!-- Generated from crates/rulesift-core/src/registry.rs. Do not edit by hand;
+     regenerate with `RULESIFT_BLESS=1 cargo test -p rulesift-core --test registry_docs`. -->
+
+RuleSift finds agent configuration files through one data-driven registry.
+Paths are project-relative globs (`**` = any directories). The first matching
+row wins. Doc links were last checked on {DOCS_CHECKED}.
+
+- **Release**: `mvp` rows are scanned today; `v0.2` rows are recognized and
+  skipped with a note.
+- **Always loaded**: files the tool reads in every session get the 1.5x score
+  multiplier (`frontmatter` = decided by the file's frontmatter).
+- **Global-only** rows live outside a repository; RuleSift reads them only when
+  you pass the path explicitly.
+
+| Tool | Path | Kind | Parser | Always loaded | Release | Docs |
+|---|---|---|---|---|---|---|
+"
+    );
+    for r in ROWS {
+        let paths = r
+            .globs
+            .iter()
+            .map(|g| format!("`{g}`"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let parsers = r
+            .parsers
+            .iter()
+            .map(|p| p.as_str())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let mut always = r.always.as_str().to_string();
+        if r.global_only {
+            always.push_str(" (global-only)");
+        }
+        let mut paths = paths;
+        if let Some(s) = r.requires_sibling {
+            paths.push_str(&format!(" (next to `{s}`)"));
+        }
+        out.push_str(&format!(
+            "| {} | {} | {} | {} | {} | {} | <{}> |\n",
+            r.tool, paths, r.kind, parsers, always, r.release, r.doc_url
+        ));
+    }
+    out
+}
+
 /// Render the registry as a plain-text table (used by `--list-tools` and snapshots).
 pub fn render_table() -> String {
     let mut rows: Vec<[String; 7]> = vec![[

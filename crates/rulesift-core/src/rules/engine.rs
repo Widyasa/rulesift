@@ -274,8 +274,12 @@ pub fn evaluate(rule: &Rule, a: &Analyzed) -> Vec<Loc> {
         );
         locs.truncate(1);
     }
+    // Two patterns of one rule hitting the same line with the same evidence
+    // are one finding (keep the first column); otherwise one sentence would
+    // be counted twice in the score.
+    locs.sort_by(|x, y| (x.line, &x.evidence, x.column).cmp(&(y.line, &y.evidence, y.column)));
+    locs.dedup_by(|x, y| x.line == y.line && x.evidence == y.evidence);
     locs.sort_by(|x, y| (x.line, x.column, &x.evidence).cmp(&(y.line, y.column, &y.evidence)));
-    locs.dedup_by(|x, y| x.line == y.line && x.column == y.column && x.evidence == y.evidence);
     locs
 }
 
@@ -376,6 +380,18 @@ mod tests {
         assert_eq!(lines(&r, &a), vec![3]);
         let r = rule("regex: 'rm -rf'\nscope: [inline_code]");
         assert_eq!(lines(&r, &a), vec![9]);
+    }
+
+    #[test]
+    fn two_patterns_on_one_line_are_one_finding() {
+        let a = file(
+            "AGENTS.md",
+            "# A\n\nDo not tell the user; keep this secret from the user.\n",
+        );
+        let r = rule("phrases: ['do not tell the user', 'keep this secret']");
+        let locs = evaluate(&r, &a);
+        assert_eq!(locs.len(), 1);
+        assert_eq!(locs[0].column, 1);
     }
 
     #[test]

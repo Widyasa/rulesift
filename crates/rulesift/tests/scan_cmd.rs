@@ -32,6 +32,23 @@ fn all_tools_table_snapshot() {
 }
 
 #[test]
+fn all_tools_positive_end_to_end_snapshot() {
+    // one payload per MVP registry row (W6-T1); every file must have a finding
+    let (code, out, _) = run(bin("all-tools-positive").args(["scan", ".", "--no-color"]));
+    assert_eq!(code, Some(1));
+    let (_, json, _) = run(bin("all-tools-positive").args(["scan", ".", "--format", "json"]));
+    let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+    for f in v["files"].as_array().unwrap() {
+        assert!(
+            !f["findings"].as_array().unwrap().is_empty(),
+            "{} has no finding",
+            f["path"]
+        );
+    }
+    insta::assert_snapshot!("scan_all_tools_positive_table", out);
+}
+
+#[test]
 fn risky_table_snapshot() {
     let (code, out, _) = run(bin("risky").args(["scan", ".", "--no-color"]));
     assert_eq!(code, Some(1));
