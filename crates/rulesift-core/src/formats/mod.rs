@@ -2,6 +2,7 @@
 //! settings, tool grants). Rules only ever see the normalized models.
 
 pub mod definitions;
+pub mod dialects;
 pub mod grants;
 pub mod hooks;
 pub mod mcp;
