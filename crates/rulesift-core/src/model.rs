@@ -2,8 +2,6 @@
 //! segments, findings, and reports.
 
 use serde::{Deserialize, Serialize};
-use std::fmt;
-use std::str::FromStr;
 
 /// Declares a string-backed enum with `as_str`, `ALL`, `Display`, and `FromStr`.
 macro_rules! string_enum {
@@ -12,7 +10,7 @@ macro_rules! string_enum {
         pub enum $name:ident { $( $(#[$vmeta:meta])* $variant:ident => $s:literal ),+ $(,)? }
     ) => {
         $(#[$meta])*
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, ::serde::Serialize, ::serde::Deserialize)]
         pub enum $name {
             $( $(#[$vmeta])* #[serde(rename = $s)] $variant ),+
         }
@@ -27,13 +25,13 @@ macro_rules! string_enum {
             }
         }
 
-        impl fmt::Display for $name {
-            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        impl ::std::fmt::Display for $name {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
                 f.write_str(self.as_str())
             }
         }
 
-        impl FromStr for $name {
+        impl ::std::str::FromStr for $name {
             type Err = String;
             fn from_str(s: &str) -> Result<Self, Self::Err> {
                 let t = s.trim();
