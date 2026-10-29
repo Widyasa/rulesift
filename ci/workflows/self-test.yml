@@ -1,0 +1,47 @@
+name: Action self-test
+
+# Runs this repository's composite action from source on every PR, so the
+# action is exercised before the first release exists.
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+
+concurrency:
+  group: self-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rulesift:
+    name: rulesift (from source)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Run the action from this checkout
+        id: rulesift
+        uses: ./
+        with:
+          install: source
+          # diff on pull requests, scan on pushes (default)
+          fail-on: block
+          # fork PRs get a read-only token; skip the comment there
+          comment: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+      - name: Check outputs
+        if: always()
+        shell: bash
+        env:
+          CODE: ${{ steps.rulesift.outputs.exit-code }}
+          SARIF: ${{ steps.rulesift.outputs.sarif-file }}
+        run: |
+          echo "exit code: $CODE"
+          test -s "$SARIF"

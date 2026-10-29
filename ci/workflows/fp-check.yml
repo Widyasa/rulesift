@@ -1,0 +1,30 @@
+name: fp-check
+
+# Weekly false-positive check on pinned public repos (PRD §14).
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fp-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --locked -p rulesift
+      - name: Scan pinned corpus (fails if any file reaches block)
+        run: scripts/fp-check.sh target/release/rulesift fp-out
+      - name: Summary
+        if: always()
+        run: cat fp-out/summary.md >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: fp-check-reports
+          path: fp-out/

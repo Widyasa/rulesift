@@ -1,0 +1,38 @@
+name: RuleSift
+
+# Dogfooding (W6-T7): RuleSift checks its own agent files on every PR and
+# push, the way users run it. Until v0.1.0 is released the action builds
+# from this checkout (`install: source`); after the release, switch to
+# `uses: Widyasa/rulesift@v0.1.0` and drop the Rust setup steps.
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+
+concurrency:
+  group: rulesift-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rulesift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # PRs: `rulesift diff` against the base (also verifies rulesift.lock);
+      # pushes: full `rulesift scan`. Fixtures are excluded by rulesift.toml.
+      - uses: ./
+        with:
+          install: source
+          fail-on: block
+      - name: Verify rulesift.lock
+        if: github.event_name == 'push'
+        run: rulesift verify   # the action put rulesift on PATH
