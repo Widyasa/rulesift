@@ -620,8 +620,10 @@ dependencies = [
  "anyhow",
  "assert_cmd",
  "clap",
+ "insta",
  "predicates",
  "rulesift-core",
+ "tempfile",
 ]
 
 [[package]]
