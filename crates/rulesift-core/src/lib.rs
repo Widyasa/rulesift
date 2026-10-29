@@ -9,6 +9,7 @@
 pub mod config;
 pub mod error;
 pub mod model;
+pub mod registry;
 
 pub use error::{CoreError, Result};
 

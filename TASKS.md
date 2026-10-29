@@ -39,7 +39,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: valid/invalid config fixtures tested; error messages are English and name the bad key.
   - Dep: W1-T3
 
-- [ ] **W1-T5 Tool registry**
+- [x] **W1-T5 Tool registry**
   - Description: static, data-driven registry (`core/registry.rs`) with one row per MVP path in PRD §5.1: `tool`, `kind`, path glob, parser family, always-loaded predicate id, release (`mvp`/`v0_2`), doc URL. v0.2 rows are present but disabled. Global-only file names are recognized only for explicitly passed paths.
   - Files: `core/registry.rs`
   - Done when: unit test asserts every §5.1 MVP row is present and globs compile; `rulesift --list-tools` (hidden debug flag) or a test snapshot prints the table; adding a row requires no code outside the registry.
