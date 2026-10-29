@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] - Unreleased
+
+First public release. The release date is set by the maintainer when the tag is pushed
+(see docs/release-checklist.md).
+
 ### Added
 
 - `rulesift scan`: discovery of agent files for 13 coding agents plus
@@ -33,3 +38,6 @@ All notable changes to this project are documented here. The format follows
 - A false-positive check on pinned public repos (docs/false-positives.md).
 - Packaging: cargo-dist (shell, PowerShell, npm, Homebrew) and maturin
   (PyPI wheel).
+
+[Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0

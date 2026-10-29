@@ -31,11 +31,14 @@ Regenerate the generated files when you change their inputs, then commit them:
 
 - **Registry** (`docs/supported-tools.md`): `RULESIFT_BLESS=1 cargo test -p rulesift-core --test registry_docs`
 - **Pre-commit hooks** (`.pre-commit-hooks.yaml`): `RULESIFT_BLESS=1 cargo test -p rulesift --test init_cmd`
+- **Packaged data** (`crates/rulesift-core/data/`, a copy of `rules/builtin/` and `schemas/`): `RULESIFT_BLESS=1 cargo test -p rulesift-core --test embedded_data`
 
 ## Adding or changing a rule
 
-1. Edit `rules/builtin/<category>.yaml`. Every rule needs inline `examples`
-   with `should_match` and `should_not_match`; `cargo test` runs them.
+1. Edit `rules/builtin/<category>.yaml`, then resync the packaged copy with
+   `RULESIFT_BLESS=1 cargo test -p rulesift-core --test embedded_data`.
+   Every rule needs inline `examples` with `should_match` and
+   `should_not_match`; `cargo test` runs them.
 2. Add or update `docs/rules/<ID>.md` with the sections What it detects, Why
    it matters, Example, How to fix, References, and Affected tools.
 3. Run the false-positive check on the public corpus. A rule change must not

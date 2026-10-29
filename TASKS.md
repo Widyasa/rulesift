@@ -311,7 +311,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: RuleSift scans its own repo green (fixtures excluded via config).
   - Dep: W5-T4
 
-- [ ] **W6-T8 Release v0.1.0 checklist**
+- [x] **W6-T8 Release v0.1.0 checklist**
   - Description: bump to 0.1.0, fill `CHANGELOG.md`, write `docs/release-checklist.md` (tag, cargo-dist release, crates.io, npm, PyPI, Homebrew tap) with exact commands. Tagging, publishing, and secrets are done by Widya only.
   - Files: `Cargo.toml`, `CHANGELOG.md`, `docs/release-checklist.md`
   - Done when: checklist complete and reviewed; after Widya releases, `npx rulesift --version`, `pip install rulesift`, `brew install widyasa/tap/rulesift`, and `cargo install rulesift` all report 0.1.0.

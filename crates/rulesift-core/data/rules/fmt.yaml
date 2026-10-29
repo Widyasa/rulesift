@@ -1,0 +1,118 @@
+# Format rules (PRD §8). Each one points to a Rust detector that runs the
+# matching validator (core/validate/skill.rs, core/formats/*).
+- id: RS-FMT-001
+  title: Missing or unparseable SKILL.md frontmatter
+  severity: medium
+  category: format
+  applies_to: [skill]
+  match:
+    detector: skill_frontmatter
+  message: >
+    SKILL.md must start with a YAML frontmatter block (between `---` lines)
+    that parses as a mapping. Agents may not load or may misread this skill.
+  examples:
+    path: .claude/skills/demo/SKILL.md
+    should_match: ["# Demo\n\nNo frontmatter here.\n"]
+    should_not_match: ["---\nname: demo\ndescription: Demo skill for tests.\n---\n# Demo\n"]
+  references:
+    - https://agentskills.io/specification
+
+- id: RS-FMT-002
+  title: Invalid skill name
+  severity: medium
+  category: format
+  applies_to: [skill]
+  match:
+    detector: skill_name
+  message: >
+    The skill `name` must be 1-64 characters of lowercase letters, digits,
+    and hyphens, with no leading, trailing, or double hyphen.
+  examples:
+    path: .claude/skills/demo/SKILL.md
+    should_match: ["---\nname: Demo--Skill\ndescription: Demo skill for tests.\n---\n"]
+    should_not_match: ["---\nname: demo\ndescription: Demo skill for tests.\n---\n"]
+  references:
+    - https://agentskills.io/specification
+
+- id: RS-FMT-003
+  title: Skill name does not match its directory
+  severity: low
+  category: format
+  applies_to: [skill]
+  match:
+    detector: skill_dir_name
+  message: >
+    The skill `name` should equal the name of the directory that contains
+    SKILL.md, so agents and users see the same identifier.
+  examples:
+    path: .claude/skills/demo/SKILL.md
+    should_match: ["---\nname: other\ndescription: Demo skill for tests.\n---\n"]
+    should_not_match: ["---\nname: demo\ndescription: Demo skill for tests.\n---\n"]
+  references:
+    - https://agentskills.io/specification
+
+- id: RS-FMT-004
+  title: Missing, empty, or over-long skill description
+  severity: low
+  category: format
+  applies_to: [skill]
+  match:
+    detector: skill_description
+  message: >
+    The skill `description` must be present, non-empty, and at most 1024
+    characters; agents use it to decide when to load the skill.
+  examples:
+    path: .claude/skills/demo/SKILL.md
+    should_match: ["---\nname: demo\n---\n"]
+    should_not_match: ["---\nname: demo\ndescription: Demo skill for tests.\n---\n"]
+  references:
+    - https://agentskills.io/specification
+
+- id: RS-FMT-005
+  title: Unknown skill frontmatter field or over-long compatibility
+  severity: low
+  category: format
+  applies_to: [skill]
+  match:
+    detector: skill_fields
+  message: >
+    Allowed SKILL.md frontmatter fields are name, description, license,
+    compatibility, metadata, and allowed-tools; `compatibility` is at most
+    500 characters.
+  examples:
+    path: .claude/skills/demo/SKILL.md
+    should_match: ["---\nname: demo\ndescription: Demo skill for tests.\ncolour: red\n---\n"]
+    should_not_match: ["---\nname: demo\ndescription: Demo skill for tests.\nlicense: MIT\n---\n"]
+  references:
+    - https://agentskills.io/specification
+
+- id: RS-FMT-006
+  title: Invalid frontmatter for the tool's dialect
+  severity: low
+  category: format
+  applies_to: [instructions, command, agent]
+  match:
+    detector: dialect_frontmatter
+  message: >
+    A frontmatter field has the wrong type or value for this tool (for
+    example Cursor `alwaysApply` must be a boolean, Kiro `inclusion` must be
+    always, fileMatch, manual, or auto). The tool may ignore or misapply the file.
+  examples:
+    path: .cursor/rules/demo.mdc
+    should_match: ["---\ndescription: Demo\nalwaysApply: \"yes\"\n---\nUse tabs.\n"]
+    should_not_match: ["---\ndescription: Demo\nalwaysApply: true\n---\nUse tabs.\n"]
+
+- id: RS-FMT-007
+  title: Invalid agent config file
+  severity: medium
+  category: format
+  applies_to: [mcp-config, hooks, settings, plugin]
+  match:
+    detector: config_format
+  message: >
+    The file is not valid JSON/TOML/YAML or misses a required field, so the
+    agent may ignore it or fall back to defaults.
+  examples:
+    path: .mcp.json
+    should_match: ["{\"mcpServers\": {\"demo\": {\"command\": \"echo\",}}"]
+    should_not_match: ["{\"mcpServers\": {\"demo\": {\"command\": \"echo\"}}}"]

@@ -12,12 +12,14 @@ use std::path::{Path, PathBuf};
 
 macro_rules! builtin_files {
     ($($name:literal),* $(,)?) => {
-        &[$(($name, include_str!(concat!("../../../../rules/builtin/", $name)))),*]
+        &[$(($name, include_str!(concat!("../../data/rules/", $name)))),*]
     };
 }
 
-/// Built-in rule files (name, YAML source). A test checks that every file
-/// in `rules/builtin/` is listed here.
+/// Built-in rule files (name, YAML source). The canonical files live in the
+/// repo's `rules/builtin/`; `data/rules/` is the copy packaged with this crate
+/// (crates.io cannot include files outside the crate). Tests check both that
+/// every file is listed here and that the copies match.
 pub const BUILTIN: &[(&str, &str)] = builtin_files!(
     "cfg.yaml",
     "exec.yaml",
