@@ -183,7 +183,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: table-driven tests cover each rule of §9 and config overrides.
   - Dep: W4-T2
 
-- [ ] **W4-T4 Fingerprints, suppressions, baselines**
+- [x] **W4-T4 Fingerprints, suppressions, baselines**
   - Description: stable fingerprint (rule id + relative path + normalized evidence, not line number); `[[suppress]]` from config; `--baseline` / `--write-baseline` (JSON file, sorted).
   - Files: `core/suppress.rs`, `core/baseline.rs`
   - Done when: moving a finding to another line keeps its fingerprint; suppressed findings excluded from score but listed as suppressed in JSON.

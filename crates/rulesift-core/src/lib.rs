@@ -7,6 +7,7 @@
 #![forbid(unsafe_code)]
 
 pub mod analyze;
+pub mod baseline;
 pub mod config;
 pub mod discovery;
 pub mod error;
@@ -18,6 +19,7 @@ pub mod registry;
 pub mod reveal;
 pub mod rules;
 pub mod score;
+pub mod suppress;
 pub mod text;
 pub mod validate;
 
