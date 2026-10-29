@@ -131,6 +131,30 @@ fn value_segments(text: &str, value: &Value, lines: &BTreeMap<String, usize>) ->
     out
 }
 
+/// Hooks declared under `hooks:` in frontmatter, in the Claude Code settings
+/// layout. A command's line is the first frontmatter line containing it.
+fn frontmatter_hooks(text: &str, fm: &Frontmatter) -> Option<HooksFile> {
+    let root = fm.value.as_ref().ok()?;
+    root.get("hooks")?;
+    let hooks_line = fm.line_of("hooks");
+    let line_of = |ptr: &str| -> usize {
+        root.pointer(ptr)
+            .and_then(Value::as_str)
+            .filter(|s| !s.is_empty())
+            .and_then(|cmd| {
+                text.lines()
+                    .enumerate()
+                    .skip(hooks_line.saturating_sub(1))
+                    .take(fm.end_line.saturating_sub(hooks_line) + 1)
+                    .find(|(_, l)| l.contains(cmd) || l.contains(&cmd.replace('"', "\\\"")))
+                    .map(|(i, _)| i + 1)
+            })
+            .unwrap_or(hooks_line)
+    };
+    let h = hooks::from_value(crate::model::Tool::ClaudeCode, root, &line_of, false);
+    (!h.hooks.is_empty()).then_some(h)
+}
+
 /// Strings that may hold escaped hidden characters but are not `json_string`
 /// segments: object keys of the structured value (JSON, TOML, YAML), and
 /// frontmatter keys and string values (#125). The span is the source line.
@@ -279,6 +303,17 @@ pub fn analyze(
         if matches!(row.kind, FileKind::Agent | FileKind::Command) {
             if let Some(fm) = &a.frontmatter {
                 a.grants = definitions::grants(fm);
+            }
+        }
+        // Claude Code skills and subagents can declare hooks in frontmatter
+        // (same layout as settings.json); check them like other hooks (#126).
+        if has(ParserFamily::Skill) || row.kind == FileKind::Agent {
+            if let Some(h) = a
+                .frontmatter
+                .as_ref()
+                .and_then(|fm| frontmatter_hooks(text, fm))
+            {
+                a.hooks = Some(h);
             }
         }
     }

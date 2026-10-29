@@ -361,7 +361,7 @@ Severity: `critical | high | medium | low`. "Detector" means implemented in Rust
 | RS-MCP-005 | Instruction-like text in a server/tool `description` (tool poisoning) | high | mcp-config, plugin | INJ phrases on `json_string` scopes named `description` |
 | RS-MCP-006 | Server auto-trusted or tools auto-approved (Gemini `trust: true`, Roo/Cline `alwaysAllow`, similar fields) | medium | mcp-config | normalized `auto_trust` / `auto_approve` |
 | RS-CFG-001 | Instructions to modify agent config (any path in the §5.1 registry, e.g. `.mcp.json`, `AGENTS.md`, `.cursor/rules`, `.gemini/settings.json`, hooks files) | high | skill, instructions, command, agent | regex |
-| RS-CFG-002 | Hook command with network or execution risk (any EXEC/EXF pattern inside a hook command) | high | hooks | normalized hook commands + EXEC/EXF regex |
+| RS-CFG-002 | Hook command with network or execution risk (any EXEC/EXF pattern inside a hook command; also `hooks:` in skill and subagent frontmatter, #126) | high | hooks, settings, plugin, skill, agent | normalized hook commands + EXEC/EXF regex |
 | RS-CFG-003 | Overly broad permissions (`Bash(*)`, `"*"`, `defaultMode`/`permissionMode: bypassPermissions`, `enableAllProjectMcpServers: true`, agent `tools: ["*"]`, Codex `.codex/config.toml` with `approval_policy = "never"` or `sandbox_mode = "danger-full-access"`) | medium | settings, agent, mcp-config | json_path / frontmatter |
 | RS-CFG-004 | Broad `allowed-tools` in a skill or command (unrestricted `Bash`) | low | skill, command | frontmatter |
 | RS-CFG-005 | Remote instruction loading ("fetch instructions from https://…", `curl … \| source`) | medium | skill, instructions, command, agent | regex |

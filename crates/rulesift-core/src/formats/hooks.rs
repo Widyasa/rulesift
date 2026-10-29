@@ -180,11 +180,22 @@ fn ptr(tokens: &[String]) -> String {
 /// Normalize parsed hooks JSON. `require_hooks` reports a missing `hooks`
 /// key (true for dedicated hooks files, false for Claude settings).
 pub fn from_doc(tool: Tool, doc: &JsonDoc, require_hooks: bool) -> HooksFile {
+    from_value(tool, &doc.value, &|p| doc.line_of(p), require_hooks)
+}
+
+/// Normalize hooks in an already parsed value (e.g. `hooks:` in the YAML
+/// frontmatter of a Claude Code skill or subagent, #126). `line_of` maps a
+/// JSON pointer to a 1-based file line.
+pub fn from_value(
+    tool: Tool,
+    root: &Value,
+    line_of: &dyn Fn(&str) -> usize,
+    require_hooks: bool,
+) -> HooksFile {
     let mut out = HooksFile::default();
     let Some(shape) = shape_for(tool) else {
         return out;
     };
-    let root = &doc.value;
     if !root.is_object() {
         out.issues
             .push(FormatIssue::new(1, "hooks file must be a JSON object."));
@@ -201,7 +212,7 @@ pub fn from_doc(tool: Tool, doc: &JsonDoc, require_hooks: bool) -> HooksFile {
         None => return out,
         Some(h) if !(h.is_object() || h.is_array()) => {
             out.issues.push(FormatIssue::new(
-                doc.line_of("/hooks"),
+                line_of("/hooks"),
                 "`hooks` must be an object or a list.",
             ));
             return out;
@@ -214,7 +225,7 @@ pub fn from_doc(tool: Tool, doc: &JsonDoc, require_hooks: bool) -> HooksFile {
     for e in entries {
         let Value::Object(obj) = e.value else {
             out.issues.push(FormatIssue::new(
-                doc.line_of(&ptr(&e.tokens)),
+                line_of(&ptr(&e.tokens)),
                 "hook entry must be an object.",
             ));
             continue;
@@ -257,12 +268,12 @@ pub fn from_doc(tool: Tool, doc: &JsonDoc, require_hooks: bool) -> HooksFile {
                             event: event.clone(),
                             matcher: matcher.clone(),
                             command: cmd.to_string(),
-                            line: doc.line_of(&p),
+                            line: line_of(&p),
                             pointer: p,
                         });
                     }
                     None => out.issues.push(FormatIssue::new(
-                        doc.line_of(&p),
+                        line_of(&p),
                         format!("hook `{cf}` must be a string."),
                     )),
                 }
@@ -272,10 +283,10 @@ pub fn from_doc(tool: Tool, doc: &JsonDoc, require_hooks: bool) -> HooksFile {
             && !out
                 .issues
                 .iter()
-                .any(|i| i.line == doc.line_of(&ptr(&e.tokens)))
+                .any(|i| i.line == line_of(&ptr(&e.tokens)))
         {
             out.issues.push(FormatIssue::new(
-                doc.line_of(&ptr(&e.tokens)),
+                line_of(&ptr(&e.tokens)),
                 format!("hook for event {event:?} has no `command`."),
             ));
         }

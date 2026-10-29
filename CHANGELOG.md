@@ -102,6 +102,8 @@ Release-gate QA findings (#99–#109):
 - RS-UNI-001 to RS-UNI-004 also find escaped hidden characters in object
   keys (MCP server names) of JSON, TOML, and YAML files and in frontmatter
   keys and strings; a character written raw is still reported once (#125).
+- RS-CFG-002 checks hooks declared in the `hooks:` frontmatter of Claude
+  Code skills and subagents, like hooks in `settings.json` (#126).
 
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0
