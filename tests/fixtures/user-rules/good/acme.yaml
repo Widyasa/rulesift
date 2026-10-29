@@ -1,0 +1,12 @@
+- id: ACME-001
+  title: Mentions the internal deploy host
+  severity: medium
+  category: policy
+  applies_to: [instructions, skill]
+  match:
+    regex: '\bdeploy\.corp\.example\b'
+    scope: [text, code_block, inline_code]
+  message: Do not reference the internal deploy host in agent instructions.
+  examples:
+    should_match: ["Push to deploy.corp.example when done."]
+    should_not_match: ["Push to staging when done."]

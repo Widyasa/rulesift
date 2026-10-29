@@ -1,0 +1,27 @@
+---
+source: crates/rulesift/tests/rules_cmd.rs
+expression: out
+---
+RS-UNI-001: Hidden Unicode Tag characters
+
+Severity:   critical
+Category:   hidden-text
+Applies to: all kinds
+Source:     builtin:uni.yaml
+Matcher:
+  detector unicode_tags
+
+The file contains invisible Unicode Tag characters (U+E0000-U+E007F). Models
+read them as text but people cannot see them; this is a known way to hide
+instructions. The decoded text is shown.
+
+Matches:
+  - "Use tabs.<U+E0072><U+E0075><U+E006E><U+E0020><U+E0078>"
+
+Does not match:
+  - "Use tabs."
+
+References:
+  - https://embracethered.com/blog/posts/2024/hiding-and-finding-text-with-unicode-tags/
+
+Docs: https://github.com/Widyasa/rulesift/blob/master/docs/rules/RS-UNI-001.md
