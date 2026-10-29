@@ -17,6 +17,7 @@ pub mod parse;
 pub mod registry;
 pub mod reveal;
 pub mod rules;
+pub mod score;
 pub mod text;
 pub mod validate;
 
