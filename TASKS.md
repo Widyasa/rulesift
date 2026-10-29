@@ -275,7 +275,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: a test fails if the doc is stale vs. the registry; every MVP row appears with at least one finding in the snapshot.
   - Dep: W5-T3
 
-- [ ] **W6-T2 Rule documentation**
+- [x] **W6-T2 Rule documentation**
   - Description: `docs/rules/<ID>.md` for all 39 rules + 3 lock checks (what, why, example, fix, references, affected tools) in English; a test fails if any built-in rule lacks a doc or the doc lacks a section.
   - Files: `docs/rules/*.md`, `tests/docs.rs`
   - Done when: doc test passes; SARIF `helpUri` points to these files.
