@@ -393,10 +393,12 @@ fn push_file(
     if !seen.insert(key) {
         return;
     }
-    // Files inside a skill directory other than registry files (images,
-    // data, archives) may legitimately be binary or large: skip them with a
-    // warning. A real agent file that cannot be analysed is reported as an
-    // RS-FMT-008 finding instead, so it never passes silently (#100).
+    // Files inside a skill directory other than registry files may be real
+    // binaries (images, fonts, archives): those are skipped with a warning.
+    // Text files there (scripts the skill runs, references it loads) are
+    // treated like agent files: if they cannot be analysed (too large,
+    // unreadable) they get RS-FMT-008, and NUL bytes do not make them
+    // binary (#100, #123).
     let auxiliary = std::ptr::eq(row, &SKILL_FILE_ROW);
     let stable_path = relative_to_anchor(fs_path, anchor).unwrap_or_else(|| path.clone());
     let mut file = DiscoveredFile {
@@ -417,7 +419,7 @@ fn push_file(
             size.div_ceil(1024),
             opts.max_file_size_kib
         );
-        if auxiliary {
+        if auxiliary && !aux_is_text(fs_path, &read_head(fs_path)) {
             out.warnings.push(Warning {
                 path: file.path,
                 message: format!("skipped: {message}"),
@@ -438,7 +440,7 @@ fn push_file(
     let bytes = match std::fs::read(fs_path) {
         Ok(b) => b,
         Err(e) => {
-            if auxiliary {
+            if auxiliary && aux_ext(fs_path) == Some(AuxExt::Binary) {
                 out.warnings.push(Warning {
                     path: file.path,
                     message: format!("skipped: cannot read file: {e}"),
@@ -455,7 +457,7 @@ fn push_file(
         }
     };
     let decoded = decode_text(&bytes);
-    if auxiliary && matches!(decoded, Decoded::Binary) {
+    if auxiliary && matches!(decoded, Decoded::Binary) && !aux_is_text(fs_path, &bytes) {
         out.warnings.push(Warning {
             path: file.path,
             message: "skipped: binary file".into(),
@@ -486,6 +488,138 @@ fn push_file(
     file.text = text;
     file.lossy = lossy;
     out.files.push(file);
+}
+
+/// Extension class of a file inside a skill directory.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AuxExt {
+    /// Scripts and text formats an agent may run or read.
+    Text,
+    /// Common binary assets.
+    Binary,
+}
+
+fn aux_ext(path: &Path) -> Option<AuxExt> {
+    const TEXT: &[&str] = &[
+        "sh",
+        "bash",
+        "zsh",
+        "fish",
+        "ksh",
+        "py",
+        "pyw",
+        "js",
+        "mjs",
+        "cjs",
+        "ts",
+        "mts",
+        "cts",
+        "jsx",
+        "tsx",
+        "rb",
+        "pl",
+        "pm",
+        "php",
+        "lua",
+        "r",
+        "ps1",
+        "psm1",
+        "bat",
+        "cmd",
+        "vbs",
+        "go",
+        "rs",
+        "java",
+        "kt",
+        "swift",
+        "c",
+        "h",
+        "cc",
+        "cpp",
+        "cs",
+        "md",
+        "mdx",
+        "markdown",
+        "txt",
+        "rst",
+        "json",
+        "jsonc",
+        "yaml",
+        "yml",
+        "toml",
+        "ini",
+        "cfg",
+        "conf",
+        "env",
+        "xml",
+        "html",
+        "htm",
+        "css",
+        "csv",
+        "tsv",
+        "sql",
+        "svg",
+        "xsd",
+        "xsl",
+        "tex",
+        "mk",
+        "make",
+        "dockerfile",
+        "gradle",
+        "awk",
+        "sed",
+        "jq",
+    ];
+    const BINARY: &[&str] = &[
+        "png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "icns", "tif", "tiff", "avif", "heic",
+        "ttf", "otf", "woff", "woff2", "eot", "pdf", "zip", "gz", "tgz", "bz2", "xz", "zst", "7z",
+        "rar", "tar", "jar", "whl", "mp3", "mp4", "wav", "ogg", "flac", "mov", "webm", "avi",
+        "docx", "xlsx", "pptx", "odt", "ods", "odp", "doc", "xls", "ppt", "sqlite", "db", "pyc",
+        "class", "o", "so", "dylib", "dll", "exe", "wasm", "bin", "npy", "npz", "pkl", "parquet",
+        "onnx", "pt",
+    ];
+    let ext = path.extension()?.to_str()?.to_ascii_lowercase();
+    if TEXT.contains(&ext.as_str()) {
+        Some(AuxExt::Text)
+    } else if BINARY.contains(&ext.as_str()) {
+        Some(AuxExt::Binary)
+    } else {
+        None
+    }
+}
+
+/// First 64 KiB of a file (empty if it cannot be read).
+fn read_head(path: &Path) -> Vec<u8> {
+    use std::io::Read as _;
+    let mut buf = Vec::new();
+    if let Ok(f) = std::fs::File::open(path) {
+        let _ = f.take(64 * 1024).read_to_end(&mut buf);
+    }
+    buf
+}
+
+/// Whether a file inside a skill directory is text an agent may run or read,
+/// even if it contains a few NUL bytes (#123): a text or script extension, a
+/// shebang, or content that is almost all printable. A binary-asset
+/// extension is not trusted on its own (`setup.png` can still be run with
+/// `bash setup.png`): the content decides.
+fn aux_is_text(path: &Path, bytes: &[u8]) -> bool {
+    if aux_ext(path) == Some(AuxExt::Text) {
+        return true;
+    }
+    if bytes.starts_with(b"#!") {
+        return true;
+    }
+    let head = &bytes[..bytes.len().min(64 * 1024)];
+    if head.is_empty() {
+        return false;
+    }
+    let nul = head.iter().filter(|&&b| b == 0).count();
+    let printable = head
+        .iter()
+        .filter(|&&b| matches!(b, b'\t' | b'\n' | b'\r' | 0x0c | 0x20..=0x7e | 0x80..))
+        .count();
+    nul <= (head.len() / 100).max(1) && printable * 100 >= head.len() * 95
 }
 
 /// Short, stable description of an I/O error (no OS-specific text, so the
@@ -926,7 +1060,12 @@ mod tests {
             ".claude/skills/s/SKILL.md",
             b"---\nname: s\n---\n",
         );
-        write(t.path(), ".claude/skills/s/data.bin", &vec![b'a'; 3 * 1024]);
+        write(
+            t.path(),
+            ".claude/skills/s/data.bin",
+            &[0u8, 1, 2, 3].repeat(768),
+        );
+        write(t.path(), ".claude/skills/s/run.sh", &vec![b'a'; 3 * 1024]);
         let opts = DiscoveryOptions {
             max_file_size_kib: 2,
             ..Default::default()
@@ -935,7 +1074,12 @@ mod tests {
         let names: Vec<_> = d.files.iter().map(|f| f.match_path.as_str()).collect();
         assert_eq!(
             names,
-            vec![".claude/skills/s/SKILL.md", "AGENTS.md", "GEMINI.md"]
+            vec![
+                ".claude/skills/s/SKILL.md",
+                ".claude/skills/s/run.sh",
+                "AGENTS.md",
+                "GEMINI.md"
+            ]
         );
         let agents = d
             .files
@@ -947,7 +1091,12 @@ mod tests {
             Some("file is larger than max_file_size_kib (2 KiB)")
         );
         assert!(agents.text.is_empty());
-        // the auxiliary skill data file is skipped with a warning only
+        // an oversize skill script fails closed too (#123)
+        assert!(d
+            .files
+            .iter()
+            .any(|f| f.match_path.ends_with("run.sh") && f.unscannable.is_some()));
+        // a binary skill data file is skipped with a warning only
         assert!(d.warnings.iter().any(|w| w.path.ends_with("data.bin")
             && w.message == "skipped: file is 3 KiB, larger than max_file_size_kib = 2"));
         assert!(d

@@ -21,6 +21,12 @@ A file at an agent-file location that RuleSift could not fully scan:
 - it contains NUL bytes. The file is still scanned as text, so other rules
   fire on its content too.
 
+Files inside a skill directory count as agent files here when they are text
+an agent may run or read: a script or text extension (`.sh`, `.py`, `.js`,
+`.md`, `.json`, …), a `#!` shebang, or content that is almost all printable
+(so `bash setup.png` cannot hide a script). Real binary assets there, such as
+images, fonts, and archives, are skipped with a warning.
+
 UTF-16 files (with a BOM, or plain ASCII text saved as UTF-16) are decoded
 and scanned normally; they do not trigger this rule.
 
