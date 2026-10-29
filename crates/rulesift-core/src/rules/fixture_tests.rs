@@ -107,6 +107,13 @@ fn every_rule_fixture() {
             }
         }
     }
+    // every fixture directory belongs to a loaded rule
+    for e in std::fs::read_dir(root()).unwrap().filter_map(|e| e.ok()) {
+        let id = e.file_name().to_string_lossy().into_owned();
+        if set.get(&id).is_none() {
+            failures.push(format!("fixture dir {id} has no loaded rule"));
+        }
+    }
     assert!(failures.is_empty(), "\n{}", failures.join("\n"));
 }
 
