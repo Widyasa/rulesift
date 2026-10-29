@@ -97,7 +97,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: extracted grants snapshot per fixture; RS-FMT-007 for invalid JSON.
   - Dep: W2-T1, W1-T8
 
-- [ ] **W2-T6 Frontmatter dialects and always-loaded predicate**
+- [x] **W2-T6 Frontmatter dialects and always-loaded predicate**
   - Description: per-tool frontmatter dialects (Cursor `.mdc`, Continue rules, Copilot `applyTo`, Kiro `inclusion`, Windsurf activation, Claude agents/commands) and the always-loaded predicate from PRD §5.1; RS-FMT-006 generalized.
   - Files: `core/formats/dialects.rs`, fixtures
   - Done when: positive/negative RS-FMT-006 fixtures per dialect; always-loaded flag tested for every registry row.
