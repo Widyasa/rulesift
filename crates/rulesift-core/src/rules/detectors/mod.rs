@@ -1,5 +1,6 @@
 //! Built-in Rust detectors referenced by name from YAML rules (PRD §8).
 
+pub mod base64;
 pub mod unicode;
 
 /// Names of the built-in detectors YAML rules may reference.
@@ -15,6 +16,7 @@ pub const KNOWN_DETECTORS: &[&str] = &[
     "bidi",
     "zero_width",
     "invisible_format",
+    "base64_payload",
 ];
 
 /// One detector match inside a text.
@@ -145,6 +147,7 @@ pub fn run(name: &str, a: &crate::analyze::Analyzed) -> Vec<Loc> {
         "bidi" => hits(unicode::bidi),
         "zero_width" => hits(unicode::zero_width),
         "invisible_format" => hits(unicode::invisible_format),
+        "base64_payload" => base64::base64_payload(a),
         _ => Vec::new(),
     }
 }

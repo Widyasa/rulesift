@@ -123,6 +123,9 @@ impl<'s> Cx<'s> {
             NodeValue::HtmlBlock(_) => {
                 let span = self.span_of(sp);
                 self.comments_in(span);
+                // Raw HTML is often hidden by renderers but read by models:
+                // expose the non-comment parts as text.
+                self.html_text_in(span);
             }
             NodeValue::Heading(_) => {
                 drop(ast);
@@ -176,9 +179,16 @@ impl<'s> Cx<'s> {
                 }
                 self.push(Scope::InlineCode, c.literal.clone(), span, None);
             }
-            NodeValue::HtmlInline(_) => {
+            NodeValue::HtmlInline(h) => {
                 let span = self.span_of(sp);
-                self.comments_in(span);
+                if h.trim_start().starts_with("<!--") {
+                    self.comments_in(span);
+                } else {
+                    if first.is_none() {
+                        *first = Some(span.0);
+                    }
+                    text.push_str(h);
+                }
             }
             NodeValue::Link(l) | NodeValue::Image(l) => {
                 let scope = if matches!(ast.value, NodeValue::Image(_)) {
@@ -202,6 +212,37 @@ impl<'s> Cx<'s> {
                     self.inline(c, text, first);
                 }
             }
+        }
+    }
+
+    /// Emit a `text` segment for each non-comment chunk of a raw HTML block.
+    fn html_text_in(&mut self, span: (usize, usize)) {
+        let src = &self.body[span.0..span.1];
+        let mut chunks: Vec<(usize, usize)> = Vec::new();
+        let mut pos = 0;
+        while let Some(i) = src[pos..].find("<!--") {
+            chunks.push((pos, pos + i));
+            let body_start = pos + i + 4;
+            pos = match src[body_start..].find("-->") {
+                Some(j) => body_start + j + 3,
+                None => src.len(),
+            };
+        }
+        chunks.push((pos, src.len()));
+        for (s, e) in chunks {
+            let chunk = &src[s..e];
+            let t = chunk.trim();
+            if t.is_empty() {
+                continue;
+            }
+            let lead = chunk.len() - chunk.trim_start().len();
+            let start = span.0 + s + lead;
+            self.push(
+                Scope::Text,
+                t.to_string(),
+                (start, start + t.len()),
+                Some(start),
+            );
         }
     }
 
