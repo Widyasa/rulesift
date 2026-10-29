@@ -108,7 +108,7 @@ pub struct Prepared {
 
 /// Resolve config, rules, and options.
 pub fn prepare(g: &GlobalArgs, paths: &[PathBuf], o: &OutputArgs) -> anyhow::Result<Prepared> {
-    let start = paths.first().cloned().unwrap_or_else(|| PathBuf::from("."));
+    let start = config_start(paths);
     let (cfg, base, cfg_dir) = common::load_config_with_dir(g, &start)?;
     let rules = common::build_rules(g, &cfg, &base, &o.rules, &o.disable)?;
     let paths: Vec<PathBuf> = if paths.is_empty() {
@@ -176,6 +176,41 @@ pub fn prepare(g: &GlobalArgs, paths: &[PathBuf], o: &OutputArgs) -> anyhow::Res
         min_severity: o.min_severity.unwrap_or(cfg.policy.min_severity),
         explain: cfg.explain.clone(),
     })
+}
+
+/// Where config discovery starts: the single given path, or the deepest
+/// directory containing all given paths (so `scan a/x/AGENTS.md AGENTS.md`,
+/// as the pre-commit hook runs it, uses the repository's config, #103).
+fn config_start(paths: &[PathBuf]) -> PathBuf {
+    match paths {
+        [] => PathBuf::from("."),
+        [one] => one.clone(),
+        many => {
+            let abs: Vec<PathBuf> = many
+                .iter()
+                .map(|p| {
+                    let dir = if p.is_dir() {
+                        p.as_path()
+                    } else {
+                        p.parent().unwrap_or(Path::new("."))
+                    };
+                    let dir = if dir.as_os_str().is_empty() {
+                        Path::new(".")
+                    } else {
+                        dir
+                    };
+                    std::fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf())
+                })
+                .collect();
+            let mut common = abs[0].clone();
+            while !abs.iter().all(|p| p.starts_with(&common)) {
+                if !common.pop() {
+                    break;
+                }
+            }
+            common
+        }
+    }
 }
 
 /// Hide findings below `min` (after scoring) and recompute counts.

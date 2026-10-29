@@ -225,6 +225,17 @@ pub fn discover(paths: &[PathBuf], opts: &DiscoveryOptions) -> Result<Discovery>
                     let skill_dir = (row.kind == FileKind::Skill)
                         .then(|| given.parent().map(to_slash).unwrap_or_default());
                     let mp = match_path_for_explicit(given, row).unwrap_or(name);
+                    // Excludes also apply to files passed explicitly (the
+                    // pre-commit hook passes file names), matched relative
+                    // to the anchor and as given (#103).
+                    let anchored = relative_to_anchor(given, &anchor);
+                    if anchored
+                        .as_deref()
+                        .is_some_and(|r| matches_path_or_parent(&exclude, r))
+                        || matches_path_or_parent(&exclude, disp.trim_start_matches("./"))
+                    {
+                        continue;
+                    }
                     // Outside a git work tree and without a configured anchor,
                     // anchor an explicit file where its registry path starts
                     // (`a/.cursor/rules/x.mdc` → `a`), as a directory walk would.
@@ -571,6 +582,20 @@ fn walk_dir(
 ) -> Result<()> {
     let base = to_slash(root);
     let canon_root = std::fs::canonicalize(root).map_err(|e| CoreError::io(root, e))?;
+    // `rel` relative to the anchor (e.g. the config directory), so config
+    // globs like `tests/fixtures/**` also apply when a sub-directory is
+    // scanned (#103).
+    let anchor_prefix = canon_root
+        .strip_prefix(anchor)
+        .map(to_slash)
+        .unwrap_or_default();
+    let anchored = |rel: &str| -> String { display_join(&anchor_prefix, rel) };
+    let excluded = |rel: &str| -> bool {
+        matches_path_or_parent(exclude, rel) || matches_path_or_parent(exclude, &anchored(rel))
+    };
+    let included = |rel: &str| -> bool {
+        include.is_empty() || include.is_match(rel) || include.is_match(anchored(rel))
+    };
     let walker = ignore::WalkBuilder::new(root)
         .hidden(false)
         .git_ignore(true)
@@ -688,10 +713,10 @@ fn walk_dir(
         .collect();
 
     for (rel, fs_path) in &entries {
-        if matches_path_or_parent(exclude, rel) {
+        if excluded(rel) {
             continue;
         }
-        if !include.is_empty() && !include.is_match(rel) {
+        if !included(rel) {
             continue;
         }
         let skill_dir = skill_dirs
@@ -750,10 +775,10 @@ fn walk_dir(
     // symlink where agent files would live) hides content from the scan
     // while agents may still follow it: report it as unscannable (#100).
     for (rel, fs_path, is_dir) in escaped {
-        if matches_path_or_parent(exclude, &rel) {
+        if excluded(&rel) {
             continue;
         }
-        if !include.is_empty() && !include.is_match(&rel) {
+        if !included(&rel) {
             continue;
         }
         let row = if is_dir {

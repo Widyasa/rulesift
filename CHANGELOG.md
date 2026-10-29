@@ -58,6 +58,11 @@ Release-gate QA findings (#99–#109):
 - RS-EXEC-001 no longer flags `curl … | python3 -c "…"`, `| python3 -m …`,
   `| node -e …`, `| perl -pe …`, or `| python3 script.py`, where the download
   is data, not the program (#102).
+- `[scan].exclude` from `rulesift.toml` is matched relative to the config
+  directory and also applies to files passed explicitly; with several paths
+  the config is looked up from their common directory. The pre-commit hooks
+  now scan the repository with its config (`pass_filenames: false`) instead
+  of the changed file names, so excluded files never block a commit (#103).
 
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0

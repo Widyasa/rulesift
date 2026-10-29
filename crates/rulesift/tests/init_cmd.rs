@@ -96,7 +96,10 @@ fn pre_commit_hooks_file_is_generated_from_registry() {
     assert_eq!(hook["id"], "rulesift");
     assert_eq!(hook["language"], "rust");
     assert_eq!(hook["entry"], "rulesift scan --fail-on block");
-    assert_eq!(hook["pass_filenames"], true);
+    assert_eq!(
+        hook["pass_filenames"], false,
+        "scan the repo with its config (#103)"
+    );
     assert_eq!(v[1]["id"], "rulesift-system");
     assert_eq!(v[1]["files"], hook["files"]);
     let re = regex::Regex::new(hook["files"].as_str().unwrap()).unwrap();
