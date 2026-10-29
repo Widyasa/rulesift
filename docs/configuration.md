@@ -102,6 +102,23 @@ rulesift scan . --baseline rulesift-baseline.json         # only new findings co
 Fingerprints ignore line numbers, so moving text around does not resurface a
 baselined finding.
 
+Fingerprints are computed on a stable path, so a baseline written one way
+matches every other way of scanning the same repo (`scan .`, `scan
+/abs/path/to/repo`, `scan repo` from the parent directory, a no-argument scan
+from a subdirectory, explicit file arguments) and every checkout location,
+including CI runners. The path is relative to the first of:
+
+1. the directory of the `rulesift.toml` in use, when every scanned path is
+   inside it;
+2. the enclosing git work tree;
+3. the scanned directory (for a single file outside git: the directory its
+   registry path starts in, e.g. the repo root of `.cursor/rules/x.mdc`).
+
+Reported paths are relative to the working directory when you pass relative
+paths. Absolute arguments, and no-argument scans that fall back to
+`[scan].paths`, are reported relative to the same stable root instead of as
+machine-specific absolute paths.
+
 ## `[explain]`
 
 Optional AI second opinion with the agent CLI you already have; see
