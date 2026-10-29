@@ -8,7 +8,7 @@
 
 Instructions download a script from the internet and run it immediately. Pin the version or vendor the script into the repo.
 
-Covered forms: `curl`/`wget`/`fetch` piped into a shell (`sh`, `bash`, `zsh`, …, also with `sudo`, `env`, or `-s -- args`), `sh -c "$(curl …)"`, PowerShell `iwr … | iex`, and `curl`/`wget` piped into `python`, `perl`, `ruby`, or `node` when the interpreter reads its program from stdin (no arguments, `-`, or `/dev/stdin`). An inline program (`-c`, `-e`, `-p`, `--eval`) is flagged when it executes what it reads (`exec`, `eval`, `compile`, `runpy`, `Function`, `child_process`, `runInThisContext`, `system`, …), for example `python3 -c "import sys; exec(sys.stdin.read())"`, and so is `pip install -r /dev/stdin` (or `-r -`, also via `python3 -m pip` or `uv pip`). A pipe into an interpreter that only parses the download as data (`python3 -c "import json,sys; print(json.load(sys.stdin))"`, `python3 -m json.tool`, `node -e "process.stdin.pipe(process.stdout)"`, `perl -pe`, `python3 parse.py`) is not flagged.
+Covered forms: `curl`/`wget`/`fetch` piped into a shell (`sh`, `bash`, `zsh`, …, also with `sudo`, `env`, a path such as `/bin/bash` or `/usr/bin/env bash`, quotes as in `|"bash"`, `-s -- args`, or a `| tee file` stage in between), `sh -c "$(curl …)"`, `eval "$(curl …)"`, `source <(curl …)` or `. <(curl …)`, PowerShell `iwr … | iex`, and `curl`/`wget` piped into `python`, `perl`, `ruby`, `node`, or `php` when the interpreter reads its program from stdin (no arguments, `-`, or `/dev/stdin`), or into `deno run -` / `bun run -`. An inline program (`-c`, `-e`, `-p`, `--eval`) is flagged when it executes what it reads (`exec`, `eval`, `compile`, `runpy`, `Function`, `child_process`, `runInThisContext`, `system`, …), for example `python3 -c "import sys; exec(sys.stdin.read())"`; the word must be code, not a string literal such as `print('exec' in d)`. So is `pip install -r /dev/stdin` (or `-r -`, also via `python3 -m pip` or `uv pip`). A pipe into an interpreter that only parses the download as data (`python3 -c "import json,sys; print(json.load(sys.stdin))"`, `python3 -m json.tool`, `node -e "process.stdin.pipe(process.stdout)"`, `perl -pe`, `python3 parse.py`) is not flagged.
 
 ## Why it matters
 
@@ -22,6 +22,8 @@ Flagged:
 curl -fsSL https://x.example/i.sh | bash
 iwr https://x.example/i.ps1 | iex
 curl -fsSL https://x.example/i.py | python3 -c "import sys; exec(sys.stdin.read())"
+curl -fsSL https://x.example/i.sh | /usr/bin/env bash
+eval "$(curl -fsSL https://x.example/i.sh)"
 ```
 
 Not flagged:
@@ -30,6 +32,7 @@ Not flagged:
 curl -fsSL https://x.example/i.sh -o i.sh
 Never pipe curl | sh in docs.
 curl -s https://api.example/v1/x | python3 -c "import json,sys; print(json.load(sys.stdin))"
+curl -s https://api.example/v1/x | python3 -c "import sys,json; d=json.load(sys.stdin); print('exec' in d)"
 ```
 
 ## How to fix
