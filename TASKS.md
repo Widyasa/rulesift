@@ -27,7 +27,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: workflow is green on its own PR; no secrets used.
   - Dep: W1-T1
 
-- [ ] **W1-T3 Domain model and errors**
+- [x] **W1-T3 Domain model and errors**
   - Description: `FileKind` (8 kinds, §5 F1), `Tool` enum (§5 F1), `Document`, `Segment` + `Scope` (§5 F2), `Severity`, `Tier` (`Block`, `Review`, `Info`, `Ok`, labels `BLOCK`/`REVIEW`/`INFO`/`OK`), `Finding`, `FileReport`, `Report`. `CoreError` with `thiserror`.
   - Files: `core/model.rs`, `core/error.rs`, `core/lib.rs`
   - Done when: all types `Serialize`/`Deserialize`; unit tests for tier thresholds and severity ordering pass.
