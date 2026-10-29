@@ -10,6 +10,11 @@ A hook runs automatically on agent events and its command makes a network call o
 
 Hooks are read from hooks files, settings, and plugin manifests, and from the `hooks:` field in the YAML frontmatter of Claude Code skills (`SKILL.md`) and subagents (`.claude/agents/*.md`), which use the same layout as `settings.json`.
 
+Scoring: a file with this finding scores at least `review_at` (40), so it is
+at least in the `review` tier wherever the hook is declared. Skills and
+subagents with frontmatter hooks also get the always-loaded multiplier (1.5),
+like `settings.json`.
+
 ## Why it matters
 
 Hooks run automatically on agent events (session start, before or after a tool call) without asking the user. A hook that downloads, decodes, or pipes into a shell gives whoever controls the URL code execution on every developer machine that opens the repo.

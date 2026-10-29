@@ -399,8 +399,9 @@ references:
 
 Per finding weight: critical 70, high 25, medium 10, low 3 (configurable).
 File score = min(100, round((Σ weights) × M + B)), where
-- M = 1.5 if the file is always loaded per the always-loaded predicate in §5.1 (e.g. root `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.rules`, Copilot instructions, `alwaysApply: true`, Kiro `inclusion: always`, all hooks and settings), else 1.0;
+- M = 1.5 if the file is always loaded per the always-loaded predicate in §5.1 (e.g. root `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.rules`, Copilot instructions, `alwaysApply: true`, Kiro `inclusion: always`, all hooks and settings, and skills and subagents whose frontmatter declares `hooks:`, since those hooks run on every matching event once the skill or subagent is active, #138), else 1.0;
 - B = 20 ("toxic combination", the lethal trifecta) if the same file/skill has at least one RS-SEC-002/003 finding **and** at least one RS-EXF-* or RS-EXEC-001/002 finding, else 0.
+A live RS-CFG-002 finding (hook with network or execution risk) of high or critical severity raises the file score to at least `review_at` (40), in every location (hooks files, settings, plugins, skill and subagent frontmatter), so an auto-running hook never stays in `info` (#138).
 Repo score = max file score. Tiers: `block` ≥ 70, `review` 40–69, `info` 1–39, `ok` 0. Suppressed and baselined findings do not count. Output shows a per-file breakdown (`weights`, `multiplier`, `bonus`).
 
 ---
