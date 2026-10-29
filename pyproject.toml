@@ -1,0 +1,33 @@
+# PyPI packaging (PRD §13): `pip install rulesift` ships the native binary.
+# Build: `maturin build --release`. Publishing is done by Widya only.
+[build-system]
+requires = ["maturin>=1.15,<2"]
+build-backend = "maturin"
+
+[project]
+name = "rulesift"
+description = "Offline, zero-cost linter and PR gate for AI agent configuration (skills, rules, MCP configs, hooks)"
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT OR Apache-2.0"
+license-files = ["LICENSE-MIT", "LICENSE-APACHE"]
+authors = [{ name = "Widya Yasa" }]
+keywords = ["security", "linter", "mcp", "agents", "sarif"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Programming Language :: Rust",
+    "Topic :: Security",
+    "Topic :: Software Development :: Quality Assurance",
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/Widyasa/rulesift"
+Repository = "https://github.com/Widyasa/rulesift"
+Documentation = "https://github.com/Widyasa/rulesift/tree/master/docs"
+
+[tool.maturin]
+bindings = "bin"
+manifest-path = "crates/rulesift/Cargo.toml"
+strip = true
