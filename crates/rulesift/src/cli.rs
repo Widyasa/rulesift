@@ -47,6 +47,8 @@ pub enum Command {
     Diff(Box<crate::diff::DiffArgs>),
     /// Write a commented rulesift.toml, a CI workflow, or print a pre-commit snippet.
     Init(crate::init::InitArgs),
+    /// Start the read-only MCP server over stdio (for your coding agent).
+    Mcp,
     /// Write or update rulesift.lock for all agent files.
     Lock(crate::lock::LockArgs),
     /// Verify agent files against rulesift.lock (exit 1 on any difference).
@@ -67,6 +69,7 @@ pub fn run(cli: Cli) -> anyhow::Result<ExitCode> {
         Some(Command::Scan(a)) => crate::scan::run(&cli.global, &a),
         Some(Command::Diff(a)) => crate::diff::run(&cli.global, &a),
         Some(Command::Init(a)) => crate::init::run(&cli.global, &a),
+        Some(Command::Mcp) => crate::mcp::run(&cli.global),
         Some(Command::Lock(a)) => crate::lock::run_lock(&cli.global, &a),
         Some(Command::Verify(a)) => crate::lock::run_verify(&cli.global, &a),
         Some(Command::Reveal(a)) => crate::reveal::run(&cli.global, &a),

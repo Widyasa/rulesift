@@ -13,9 +13,10 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 /// Output formats.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, ValueEnum)]
 pub enum Format {
     /// Human-readable table.
+    #[default]
     Table,
     /// JSON report (schema_version 1).
     Json,
@@ -39,7 +40,7 @@ pub struct ScanArgs {
 }
 
 /// Output and policy options shared by `scan` and `diff`.
-#[derive(Debug, Clone, Args)]
+#[derive(Debug, Clone, Default, Args)]
 pub struct OutputArgs {
     /// stdout format.
     #[arg(long, value_enum, default_value_t = Format::Table)]

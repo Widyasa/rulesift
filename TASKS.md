@@ -247,7 +247,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: snapshots of generated files; `--force` behavior tested; hook `files` regex is generated from the tool registry and tested against every MVP path.
   - Dep: W5-T4
 
-- [ ] **W5-T6 MCP server**
+- [x] **W5-T6 MCP server**
   - Description: `rulesift mcp` with `rmcp`, stdio, tools in §11.1, read-only, path escape protection.
   - Files: `cli/mcp.rs`
   - Done when: an in-process client test lists tools and calls `scan_path` and `reveal_file` on fixtures; `..` escape rejected.
