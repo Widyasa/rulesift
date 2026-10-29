@@ -13,6 +13,13 @@ Thanks for helping. RuleSift is a Rust workspace:
 Architecture, scope, and the rule list are in [PRD.md](PRD.md). Agent
 contributors also follow [AGENTS.md](AGENTS.md).
 
+## Prerequisites
+
+- Rust 1.89 or newer (the workspace MSRV) with `rustfmt` and `clippy`.
+- `git` and `bash` on `PATH` for the test suite. RuleSift itself reads git
+  repositories with gix and needs neither, but tests build fixture repositories
+  with the `git` binary and run the GitHub Action's shell steps with `bash`.
+
 ## Before you open a PR
 
 ```sh

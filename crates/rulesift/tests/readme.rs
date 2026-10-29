@@ -101,3 +101,17 @@ fn relative_links_resolve() {
         }
     }
 }
+
+/// #107: tests shell out to `git` and `bash`; CONTRIBUTING must say so.
+#[test]
+fn contributing_lists_test_prerequisites() {
+    let text = std::fs::read_to_string(root().join("CONTRIBUTING.md")).unwrap();
+    let section = text
+        .split("## Prerequisites")
+        .nth(1)
+        .and_then(|s| s.split("\n## ").next())
+        .expect("CONTRIBUTING.md has a Prerequisites section");
+    for tool in ["`git`", "`bash`", "1.89"] {
+        assert!(section.contains(tool), "Prerequisites must mention {tool}");
+    }
+}
