@@ -8,6 +8,8 @@
 
 Runs of variation selectors or other invisible format characters can carry hidden data inside otherwise normal text.
 
+In JSON, TOML, and YAML agent files (MCP configs, hooks, settings, plugin manifests) the characters are also found when they are written as escape sequences such as `\u202E` inside a string value, because the agent sees them once it decodes the file.
+
 ## Why it matters
 
 Runs of variation selectors or invisible format characters can encode hidden data (for example inside an emoji) that reviewers cannot see.

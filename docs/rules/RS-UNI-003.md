@@ -8,6 +8,8 @@
 
 Zero-width characters split words invisibly and can hide keywords from reviewers and filters. A byte order mark at the start of the file is allowed.
 
+In JSON, TOML, and YAML agent files (MCP configs, hooks, settings, plugin manifests) the characters are also found when they are written as escape sequences such as `\u202E` inside a string value, because the agent sees them once it decodes the file.
+
 ## Why it matters
 
 Zero-width characters inside words split keywords so filters miss them, or hide data between visible letters.

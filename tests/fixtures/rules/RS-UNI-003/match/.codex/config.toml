@@ -1,0 +1,4 @@
+[mcp_servers.docs]
+command = "node"
+args = ["server.js"]
+env = { MODE = "ad\u200Bmin" }

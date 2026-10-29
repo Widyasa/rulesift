@@ -8,6 +8,8 @@
 
 The file contains invisible Unicode Tag characters (U+E0000-U+E007F). Models read them as text but people cannot see them; this is a known way to hide instructions. The decoded text is shown.
 
+In JSON, TOML, and YAML agent files (MCP configs, hooks, settings, plugin manifests) the characters are also found when they are written as escape sequences such as `\u202E` inside a string value, because the agent sees them once it decodes the file.
+
 ## Why it matters
 
 Unicode Tag characters (U+E0000-U+E007F) are invisible in editors and PR diffs but many models read them as ASCII. They can carry a full hidden instruction.
