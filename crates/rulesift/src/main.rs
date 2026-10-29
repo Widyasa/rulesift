@@ -4,6 +4,7 @@
 
 mod cli;
 mod common;
+mod diff;
 mod lock;
 mod reveal;
 mod rules;

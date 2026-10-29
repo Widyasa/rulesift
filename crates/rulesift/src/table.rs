@@ -1,7 +1,7 @@
 //! Terminal table output (PRD §10.4).
 
 use owo_colors::OwoColorize;
-use rulesift_core::model::{Report, Severity, Tier};
+use rulesift_core::model::{ChangeOp, Report, Severity, Tier};
 use rulesift_core::rules::detectors::{truncate, unicode};
 use std::fmt::Write as _;
 
@@ -56,6 +56,36 @@ pub fn render(r: &Report, exit_code: u8, color: bool, quiet: bool) -> String {
         .max()
         .unwrap_or(10)
         .max(10);
+    if !r.changes.is_empty() {
+        let w = r
+            .changes
+            .iter()
+            .map(|c| c.path.chars().count())
+            .max()
+            .unwrap_or(0)
+            .min(40);
+        let _ = writeln!(out, "Agent capability changes:");
+        for c in &r.changes {
+            let sym = c.op.symbol();
+            let sym = if color {
+                match c.op {
+                    ChangeOp::Added => sym.green().to_string(),
+                    ChangeOp::Removed => sym.red().to_string(),
+                    ChangeOp::Changed => sym.yellow().to_string(),
+                    ChangeOp::Lock => sym.red().bold().to_string(),
+                }
+            } else {
+                sym.to_string()
+            };
+            let _ = writeln!(
+                out,
+                "  {sym} {:<w$}  {}",
+                unicode::render(&c.path),
+                unicode::render(&c.detail)
+            );
+        }
+        out.push('\n');
+    }
     for f in &r.files {
         let live: Vec<_> = f.findings.iter().filter(|x| !x.suppressed).collect();
         let hidden = f.findings.len() - live.len();
