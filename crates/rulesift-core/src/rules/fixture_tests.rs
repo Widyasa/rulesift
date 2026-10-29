@@ -201,3 +201,62 @@ fn exec_001_interpreter_reads_program_from_stdin() {
         assert!(!hit(fp), "should not flag: {fp}");
     }
 }
+
+#[test]
+fn escaped_hidden_chars_in_keys_and_frontmatter_are_reported_once() {
+    // #125: keys and frontmatter strings are decoded; a character written raw
+    // is reported from the file text only, not again from the decoded string.
+    let set = load(&LoadOptions {
+        builtin: true,
+        ..Default::default()
+    })
+    .unwrap();
+    let rule = set.get("RS-UNI-002").unwrap();
+    let count = |path: &str, text: &str| {
+        let row = match_path(path, Origin::Walked).unwrap();
+        let a = analyze(path, path, row, Some("d"), text);
+        run_rules([rule], &a).len()
+    };
+    let skill = ".claude/skills/d/SKILL.md";
+    assert_eq!(
+        count(
+            skill,
+            "---\nname: d\ndescription: \"a\\u202Eb\"\n---\nBody.\n"
+        ),
+        1
+    );
+    assert_eq!(
+        count(
+            skill,
+            "---\nname: d\ndescription: \"a\u{202E}b\"\n---\nBody.\n"
+        ),
+        1
+    );
+    assert_eq!(
+        count(
+            skill,
+            "---\nname: d\nmetadata:\n  \"k\\u202E\": v\n---\nBody.\n"
+        ),
+        1
+    );
+    let mcp = ".cursor/mcp.json";
+    assert_eq!(
+        count(
+            mcp,
+            "{\"mcpServers\":{\"h\\u202E\":{\"command\":\"node\"}}}\n"
+        ),
+        1
+    );
+    assert_eq!(
+        count(
+            mcp,
+            "{\"mcpServers\":{\"h\u{202E}\":{\"command\":\"node\"}}}\n"
+        ),
+        1
+    );
+    let toml = ".codex/config.toml";
+    assert_eq!(
+        count(toml, "[mcp_servers.\"h\\u202E\"]\ncommand = \"node\"\n"),
+        1
+    );
+}
