@@ -58,7 +58,9 @@ pub fn build_rules(
         disable: dis,
         severity_override: cfg.rules.severity_override.clone(),
     })?;
-    if g.verbose {
+    // Unknown rule ids in disable/override lists are warnings, not errors,
+    // so a config stays usable across versions; `-q` hides them (#120).
+    if !g.quiet {
         for w in &set.warnings {
             eprintln!("warning: {w}");
         }

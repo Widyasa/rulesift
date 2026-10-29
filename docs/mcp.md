@@ -15,7 +15,7 @@ RuleSift prints these snippets but never writes them for you:
 - **Claude Code:** `.mcp.json`, or `claude mcp add --scope project rulesift -- rulesift mcp`
 - **Codex:** `~/.codex/config.toml`, or `codex mcp add rulesift -- rulesift mcp`
 
-Tools (all read-only):
+Tools (all read-only and offline; each carries `readOnlyHint: true` and `openWorldHint: false`):
 
 | Tool | Input | Output |
 |---|---|---|

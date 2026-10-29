@@ -76,6 +76,11 @@ fn comment_step_finds_the_marker() {
         .unwrap()
         .to_string();
     assert!(script.contains("<!-- rulesift:pr-comment -->"));
+    // #120: never take over someone else's comment that starts with the marker
+    assert!(
+        script.contains("c.user.login === 'github-actions[bot]'"),
+        "{script}"
+    );
     assert!(script.contains("updateComment") && script.contains("createComment"));
 }
 
