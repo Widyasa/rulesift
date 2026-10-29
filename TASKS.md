@@ -189,7 +189,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: moving a finding to another line keeps its fingerprint; suppressed findings excluded from score but listed as suppressed in JSON.
   - Dep: W4-T3
 
-- [ ] **W4-T5 `rulesift scan` with table output and exit codes**
+- [x] **W4-T5 `rulesift scan` with table output and exit codes**
   - Description: wire discovery → parse → normalize → rules → score; flags in §6.1 incl. `--tools` (except `--explain`); table per §10.4; exit codes §6.8.
   - Files: `cli/scan.rs`, `cli/table.rs`
   - Done when: `assert_cmd` snapshots for the `all-tools` repo (no color); exit code tests for each `--fail-on` value and for config errors (2).

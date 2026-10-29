@@ -3,10 +3,9 @@
 use crate::cli::GlobalArgs;
 use anyhow::{bail, Context};
 use clap::{Args, Subcommand};
-use rulesift_core::config;
 use rulesift_core::rules::detectors::unicode;
 use rulesift_core::rules::examples;
-use rulesift_core::rules::loader::{self, LoadOptions, Matcher, Node, Rule, RuleSet};
+use rulesift_core::rules::loader::{self, Matcher, Node, Rule, RuleSet};
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -43,32 +42,10 @@ pub enum RulesCmd {
     },
 }
 
-/// Load built-in rules plus config and command-line rule directories,
-/// applying config disables and severity overrides.
+/// Load rules for the `rules` commands (config found from the working directory).
 pub fn load_rules(g: &GlobalArgs, dirs: &[PathBuf], disable: &[String]) -> anyhow::Result<RuleSet> {
-    let env = std::env::var_os("RULESIFT_CONFIG").map(PathBuf::from);
-    let (cfg, src) = config::load_resolved(g.config.as_deref(), env.as_deref(), Path::new("."))?;
-    let base = src
-        .path()
-        .and_then(|p| p.parent())
-        .map(Path::to_path_buf)
-        .unwrap_or_default();
-    let mut extra: Vec<PathBuf> = cfg.rules.extra_dirs.iter().map(|d| base.join(d)).collect();
-    extra.extend(dirs.iter().cloned());
-    let mut dis = cfg.rules.disable.clone();
-    dis.extend(disable.iter().cloned());
-    let set = loader::load(&LoadOptions {
-        builtin: true,
-        extra_dirs: extra,
-        disable: dis,
-        severity_override: cfg.rules.severity_override.clone(),
-    })?;
-    if g.verbose {
-        for w in &set.warnings {
-            eprintln!("warning: {w}");
-        }
-    }
-    Ok(set)
+    let (cfg, base) = crate::common::load_config(g, Path::new("."))?;
+    crate::common::build_rules(g, &cfg, &base, dirs, disable)
 }
 
 /// `list` output.

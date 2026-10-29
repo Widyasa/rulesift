@@ -1,0 +1,3 @@
+# Notes
+
+Prefer small functions.

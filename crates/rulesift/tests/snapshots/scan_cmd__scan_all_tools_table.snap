@@ -1,0 +1,68 @@
+---
+source: crates/rulesift/tests/scan_cmd.rs
+expression: out
+---
+RuleSift v0.0.1 · scanned 60 agent files
+
+.amazonq/mcp.json                            score 0    OK
+.amazonq/rules/style.md                      score 0    OK
+.claude-plugin/marketplace.json              score 0    OK
+.claude-plugin/plugin.json                   score 0    OK
+.claude/CLAUDE.md                            score 0    OK
+.claude/agents/reviewer.md                   score 0    OK
+.claude/commands/review.md                   score 0    OK
+.claude/settings.json                        score 0    OK
+.claude/settings.local.json                  score 0    OK
+.claude/skills/pdf-tools/SKILL.md            score 0    OK
+.claude/skills/pdf-tools/scripts/extract.sh  score 0    OK
+.cline/rules/style.md                        score 0    OK
+.cline/workflows/release.md                  score 0    OK
+.clinerules/style.md                         score 0    OK
+.clinerules/workflows/release.md             score 0    OK
+.codex/config.toml                           score 0    OK
+.continue/mcpServers/db.yaml                 score 0    OK
+.continue/mcpServers/docs.json               score 0    OK
+.continue/rules/style.md                     score 0    OK
+.cursor/commands/fix.md                      score 0    OK
+.cursor/hooks.json                           score 0    OK
+.cursor/mcp.json                             score 0    OK
+.cursor/rules/style.mdc                      score 0    OK
+.cursorrules                                 score 0    OK
+.devin/hooks.json                            score 0    OK
+.devin/rules/style.md                        score 0    OK
+.devin/workflows/deploy.md                   score 0    OK
+.gemini/settings.json                        score 0    OK
+.github/agents/planner.agent.md              score 0    OK
+.github/copilot-instructions.md              score 0    OK
+.github/instructions/rust.instructions.md    score 0    OK
+.github/prompts/release.prompt.md            score 0    OK
+.junie/AGENTS.md                             score 0    OK
+.junie/guidelines.md                         score 0    OK
+.junie/guidelines/testing.md                 score 0    OK
+.junie/mcp/mcp.json                          score 0    OK
+.junie/playbook.md                           score 0    OK
+.junie/rules/style.md                        score 0    OK
+.kiro/hooks/lint.json                        score 0    OK
+.kiro/settings/mcp.json                      score 0    OK
+.kiro/steering/product.md                    score 0    OK
+.mcp.json                                    score 0    OK
+.roo/mcp.json                                score 0    OK
+.roo/rules-code/style.md                     score 0    OK
+.roo/rules/style.md                          score 0    OK
+.roorules                                    score 0    OK
+.roorules-code                               score 0    OK
+.rules                                       score 0    OK
+.vscode/mcp.json                             score 0    OK
+.windsurf/hooks.json                         score 0    OK
+.windsurf/rules/style.md                     score 0    OK
+.windsurf/workflows/deploy.md                score 0    OK
+.windsurfrules                               score 0    OK
+.zed/settings.json                           score 0    OK
+AGENTS.md                                    score 0    OK
+CLAUDE.local.md                              score 0    OK
+CLAUDE.md                                    score 0    OK
+GEMINI.md                                    score 0    OK
+hooks/hooks.json                             score 0    OK
+pkg/AGENTS.md                                score 0    OK
+
+Result: 0 block, 0 review, 0 info  ·  exit code 0
