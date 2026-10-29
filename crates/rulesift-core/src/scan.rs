@@ -114,6 +114,8 @@ pub fn scan(rules: &RuleSet, opts: &ScanOptions) -> Result<ScanOutput> {
             generated_at: None,
             summary,
             files,
+            changes: vec![],
+            lock: Default::default(),
         },
         warnings: d.warnings,
         analyzed,

@@ -158,9 +158,11 @@ fn to_slash(p: &Path) -> String {
         })
         .collect();
     let joined = s.join("/");
-    // Keep a leading `/` for absolute Unix paths.
-    if p.has_root() && !joined.starts_with('/') && cfg!(unix) {
+    // `RootDir` renders as `/`, so joining yields `//`; keep a single slash.
+    if joined.starts_with("//") {
         format!("/{}", joined.trim_start_matches('/'))
+    } else if p.has_root() && !joined.starts_with('/') && cfg!(unix) {
+        format!("/{}", joined)
     } else {
         joined
     }

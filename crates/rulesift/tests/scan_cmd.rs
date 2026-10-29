@@ -121,3 +121,20 @@ fn kinds_and_disable_filters() {
     let (code, _, err) = run(bin("risky").args(["scan", ".", "--kinds", "nonsense"]));
     assert_eq!(code, Some(2), "{err}");
 }
+
+#[test]
+fn json_stdout_and_file() {
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("report.json");
+    let (code, out, _) = run(bin("risky")
+        .args(["scan", ".", "--format", "json", "--json"])
+        .arg(&file));
+    assert_eq!(code, Some(1));
+    let v: serde_json::Value = serde_json::from_str(&out).unwrap();
+    assert_eq!(v["schema_version"], 1);
+    assert_eq!(v["summary"]["block"], 1);
+    assert!(v["generated_at"].as_str().unwrap().ends_with('Z'));
+    let f: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&file).unwrap()).unwrap();
+    assert_eq!(f, v);
+}
