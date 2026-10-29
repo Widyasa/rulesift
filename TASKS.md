@@ -67,7 +67,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
 
 ## Week 2: Shared parser families and normalizers
 
-- [ ] **W2-T1 JSON parser with position map**
+- [x] **W2-T1 JSON parser with position map**
   - Description: parse JSON with `serde_json`; build a JSON-pointer → (line, column) map with a small scanner; emit `json_string` segments with pointers.
   - Files: `core/parse/json.rs`
   - Done when: tests show correct positions for nested keys, arrays, escaped strings, and CRLF files.
