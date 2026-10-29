@@ -113,6 +113,11 @@ Release-gate QA findings on 73c04df (#132–#138):
 - A file or directory symlink inside a skill directory that points outside
   the scan root (`scripts/setup.sh -> /outside/setup.sh`) fails closed with
   RS-FMT-008 instead of a warning (#135).
+- Files inside a skill directory that are not text are skipped only when
+  they are confidently a real binary format (magic bytes plus a structure
+  check, or magic bytes matching the extension). A script padded with NUL
+  bytes or glued behind a PNG header is scanned and reported as RS-FMT-008,
+  and the printable text of real binaries is still checked (#136).
 
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0

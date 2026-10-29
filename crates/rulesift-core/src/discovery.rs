@@ -102,8 +102,14 @@ pub struct DiscoveredFile {
     /// Whether the content was not valid UTF-8.
     pub lossy: bool,
     /// Why the file could not be analysed (too large, unreadable, symlink
-    /// outside the scan root); reported as RS-FMT-008. `text` is empty.
+    /// outside the scan root); reported as RS-FMT-008. `text` is empty,
+    /// except for an unrecognized binary file in a skill (#136), whose
+    /// printable text is kept.
     pub unscannable: Option<String>,
+    /// Format of a real binary asset inside a skill directory (#136). It
+    /// is skipped with a warning; `text` holds its printable text, and the
+    /// file is reported only if a rule fires on it.
+    pub binary: Option<&'static str>,
 }
 
 impl DiscoveredFile {
@@ -411,6 +417,7 @@ fn push_file(
         text: String::new(),
         lossy: false,
         unscannable: None,
+        binary: None,
     };
     let size = std::fs::metadata(fs_path).map(|m| m.len()).unwrap_or(0);
     if size > max_bytes {
@@ -419,7 +426,13 @@ fn push_file(
             size.div_ceil(1024),
             opts.max_file_size_kib
         );
-        if auxiliary && !aux_is_text(fs_path, &read_head(fs_path)) {
+        let head = read_head(fs_path);
+        // too large to check its structure: a real binary needs magic bytes
+        // that match its extension (#136)
+        if auxiliary
+            && !aux_is_text(fs_path, &head)
+            && crate::binfmt::identify(fs_path, &head, false).is_some()
+        {
             out.warnings.push(Warning {
                 path: file.path,
                 message: format!("skipped: {message}"),
@@ -440,28 +453,54 @@ fn push_file(
     let bytes = match std::fs::read(fs_path) {
         Ok(b) => b,
         Err(e) => {
-            if auxiliary && aux_ext(fs_path) == Some(AuxExt::Binary) {
-                out.warnings.push(Warning {
-                    path: file.path,
-                    message: format!("skipped: cannot read file: {e}"),
-                });
-            } else {
-                out.warnings.push(Warning {
-                    path: file.path.clone(),
-                    message: format!("not scanned (RS-FMT-008): cannot read file: {e}"),
-                });
-                file.unscannable = Some(format!("cannot read file ({})", io_kind(&e)));
-                out.files.push(file);
-            }
+            // an unreadable file cannot be identified as a real binary (#136)
+            out.warnings.push(Warning {
+                path: file.path.clone(),
+                message: format!("not scanned (RS-FMT-008): cannot read file: {e}"),
+            });
+            file.unscannable = Some(format!("cannot read file ({})", io_kind(&e)));
+            out.files.push(file);
             return;
         }
     };
     let decoded = decode_text(&bytes);
     if auxiliary && matches!(decoded, Decoded::Binary) && !aux_is_text(fs_path, &bytes) {
-        out.warnings.push(Warning {
-            path: file.path,
-            message: "skipped: binary file".into(),
-        });
+        // Skipped only if it is confidently a real binary format; its
+        // printable text is still checked (a script in a PNG text chunk).
+        // Anything else (a NUL-padded script, a PNG header glued onto a
+        // script) is scanned and fails closed with RS-FMT-008 (#136).
+        match crate::binfmt::identify(fs_path, &bytes, true) {
+            Some(format) => {
+                out.warnings.push(Warning {
+                    path: file.path.clone(),
+                    message: format!("skipped: binary file ({format})"),
+                });
+                file.text = crate::binfmt::printable_text(&bytes);
+                file.binary = Some(format);
+            }
+            None => {
+                out.warnings.push(Warning {
+                    path: file.path.clone(),
+                    message: "not scanned as text (RS-FMT-008): binary content in no recognized file format; its text was checked".into(),
+                });
+                file.text = String::from_utf8_lossy(&bytes)
+                    .chars()
+                    .map(|c| {
+                        if c.is_control() && !matches!(c, '\t' | '\n' | '\r') {
+                            ' '
+                        } else {
+                            c
+                        }
+                    })
+                    .collect();
+                file.lossy = true;
+                file.unscannable = Some(
+                    "binary content in no recognized file format (not an image, font, or archive)"
+                        .into(),
+                );
+            }
+        }
+        out.files.push(file);
         return;
     }
     let (text, lossy) = match decoded {
@@ -490,16 +529,8 @@ fn push_file(
     out.files.push(file);
 }
 
-/// Extension class of a file inside a skill directory.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum AuxExt {
-    /// Scripts and text formats an agent may run or read.
-    Text,
-    /// Common binary assets.
-    Binary,
-}
-
-fn aux_ext(path: &Path) -> Option<AuxExt> {
+/// Whether a file inside a skill directory has a script or text extension.
+fn has_text_ext(path: &Path) -> bool {
     const TEXT: &[&str] = &[
         "sh",
         "bash",
@@ -570,22 +601,9 @@ fn aux_ext(path: &Path) -> Option<AuxExt> {
         "sed",
         "jq",
     ];
-    const BINARY: &[&str] = &[
-        "png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "icns", "tif", "tiff", "avif", "heic",
-        "ttf", "otf", "woff", "woff2", "eot", "pdf", "zip", "gz", "tgz", "bz2", "xz", "zst", "7z",
-        "rar", "tar", "jar", "whl", "mp3", "mp4", "wav", "ogg", "flac", "mov", "webm", "avi",
-        "docx", "xlsx", "pptx", "odt", "ods", "odp", "doc", "xls", "ppt", "sqlite", "db", "pyc",
-        "class", "o", "so", "dylib", "dll", "exe", "wasm", "bin", "npy", "npz", "pkl", "parquet",
-        "onnx", "pt",
-    ];
-    let ext = path.extension()?.to_str()?.to_ascii_lowercase();
-    if TEXT.contains(&ext.as_str()) {
-        Some(AuxExt::Text)
-    } else if BINARY.contains(&ext.as_str()) {
-        Some(AuxExt::Binary)
-    } else {
-        None
-    }
+    path.extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|e| TEXT.contains(&e.to_ascii_lowercase().as_str()))
 }
 
 /// First 64 KiB of a file (empty if it cannot be read).
@@ -600,11 +618,11 @@ fn read_head(path: &Path) -> Vec<u8> {
 
 /// Whether a file inside a skill directory is text an agent may run or read,
 /// even if it contains a few NUL bytes (#123): a text or script extension, a
-/// shebang, or content that is almost all printable. A binary-asset
-/// extension is not trusted on its own (`setup.png` can still be run with
-/// `bash setup.png`): the content decides.
+/// shebang, or content that is almost all printable. Other files are skipped
+/// only if they are confidently a real binary format (see `binfmt`, #136); an
+/// extension is never trusted on its own (`bash setup.png` still runs).
 fn aux_is_text(path: &Path, bytes: &[u8]) -> bool {
-    if aux_ext(path) == Some(AuxExt::Text) {
+    if has_text_ext(path) {
         return true;
     }
     if bytes.starts_with(b"#!") {
@@ -985,6 +1003,7 @@ fn walk_dir(
             text: String::new(),
             lossy: false,
             unscannable: Some(what.into()),
+            binary: None,
         });
     }
     Ok(())
@@ -1075,8 +1094,8 @@ mod tests {
         );
         write(
             t.path(),
-            ".claude/skills/s/data.bin",
-            &[0u8, 1, 2, 3].repeat(768),
+            ".claude/skills/s/data.gz",
+            &[0x1Fu8, 0x8B, 8, 0].repeat(768),
         );
         write(t.path(), ".claude/skills/s/run.sh", &vec![b'a'; 3 * 1024]);
         let opts = DiscoveryOptions {
@@ -1110,7 +1129,7 @@ mod tests {
             .iter()
             .any(|f| f.match_path.ends_with("run.sh") && f.unscannable.is_some()));
         // a binary skill data file is skipped with a warning only
-        assert!(d.warnings.iter().any(|w| w.path.ends_with("data.bin")
+        assert!(d.warnings.iter().any(|w| w.path.ends_with("data.gz")
             && w.message == "skipped: file is 3 KiB, larger than max_file_size_kib = 2"));
         assert!(d
             .warnings
@@ -1132,7 +1151,11 @@ mod tests {
             ".claude/skills/s/SKILL.md",
             b"---\nname: s\n---\n",
         );
-        write(t.path(), ".claude/skills/s/logo.png", b"\x89PNG\0\0");
+        write(
+            t.path(),
+            ".claude/skills/s/logo.png",
+            &crate::binfmt::tests::make_png(b""),
+        );
         let d = discover(&[t.path().to_path_buf()], &DiscoveryOptions::default()).unwrap();
         let agents = d
             .files
@@ -1141,12 +1164,19 @@ mod tests {
             .unwrap();
         assert!(agents.unscannable.is_none());
         assert!(agents.text.contains("curl -fsSL") && agents.text.contains('\0'));
-        // binary files inside a skill directory are still skipped
-        assert!(!d.files.iter().any(|f| f.path.ends_with("logo.png")));
+        // real binary files inside a skill directory are still skipped; only
+        // their printable text is kept for a check (#136)
+        let logo = d
+            .files
+            .iter()
+            .find(|f| f.path.ends_with("logo.png"))
+            .unwrap();
+        assert_eq!(logo.binary, Some("PNG"));
+        assert!(logo.unscannable.is_none());
         assert!(d
             .warnings
             .iter()
-            .any(|w| w.path.ends_with("logo.png") && w.message == "skipped: binary file"));
+            .any(|w| w.path.ends_with("logo.png") && w.message == "skipped: binary file (PNG)"));
     }
 
     #[test]

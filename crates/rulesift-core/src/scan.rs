@@ -50,6 +50,7 @@ pub fn analyze_file(f: &DiscoveredFile) -> Analyzed {
     let mut a = analyze(&f.path, &f.match_path, f.row, dir_name, &f.text);
     a.stable_path = Some(f.stable_path.clone());
     a.unscannable = f.unscannable.clone();
+    a.binary_asset = f.binary.is_some();
     a
 }
 
@@ -62,8 +63,14 @@ pub fn scan_analyzed(
     let sup = Suppressor::new(&opts.suppress)?;
     let mut files = Vec::new();
     let mut meta = Vec::new();
-    for a in &analyzed {
-        let mut findings = engine::run(rules, a);
+    let mut kept = Vec::with_capacity(analyzed.len());
+    for a in analyzed {
+        let mut findings = engine::run(rules, &a);
+        // a real binary asset is reported only if its printable text hit a
+        // rule (#136)
+        if a.binary_asset && findings.is_empty() {
+            continue;
+        }
         // Fingerprints use the stable anchor-relative path, so baselines
         // match however the scan was invoked and wherever the repo lives.
         let stable = a.stable_path.as_deref().unwrap_or(&a.doc.path);
@@ -92,12 +99,13 @@ pub fn scan_analyzed(
         });
         meta.push(FileMeta {
             always_loaded: a.doc.always_loaded,
-            group: skill_group(a),
+            group: skill_group(&a),
         });
+        kept.push(a);
     }
     score_all(&mut files, &meta, &opts.score);
     // sort files by path (analyses kept parallel)
-    let mut pairs: Vec<(FileReport, Analyzed)> = files.into_iter().zip(analyzed).collect();
+    let mut pairs: Vec<(FileReport, Analyzed)> = files.into_iter().zip(kept).collect();
     pairs.sort_by(|x, y| x.0.path.cmp(&y.0.path));
     Ok(pairs.into_iter().unzip())
 }
