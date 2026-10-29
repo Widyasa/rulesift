@@ -127,6 +127,11 @@ Release-gate QA findings on 73c04df (#132–#138):
   check, or magic bytes matching the extension). A script padded with NUL
   bytes or glued behind a PNG header is scanned and reported as RS-FMT-008,
   and the printable text of real binaries is still checked (#136).
+- RS-EXEC-001 also flags `| /bin/bash`, `| /usr/bin/env bash`, `|"bash"`,
+  `| tee file | bash`, `eval "$(curl …)"`, `source <(curl …)`,
+  `. <(curl …)`, `| deno run -`, `| bun run -`, and `| php`. An inline
+  program that only mentions `exec` in a string literal
+  (`print('exec' in d)`) is no longer flagged (#137).
 
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0

