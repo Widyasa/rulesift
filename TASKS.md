@@ -33,7 +33,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: all types `Serialize`/`Deserialize`; unit tests for tier thresholds and severity ordering pass.
   - Dep: W1-T1
 
-- [ ] **W1-T4 Config `rulesift.toml`**
+- [x] **W1-T4 Config `rulesift.toml`**
   - Description: parse §7.1 with `deny_unknown_fields`, defaults, discovery (walk up from first path, `--config`, `RULESIFT_CONFIG`). `[[suppress]]` requires `reason`.
   - Files: `core/config.rs`, `tests/fixtures/config/*`
   - Done when: valid/invalid config fixtures tested; error messages are English and name the bad key.

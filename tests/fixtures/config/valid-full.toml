@@ -1,0 +1,38 @@
+# rulesift.toml (PRD §7.1 example)
+[scan]
+paths = ["."]
+exclude = ["node_modules/**", "target/**", "tests/fixtures/**"]
+kinds = ["skill", "instructions", "command", "agent", "mcp-config", "hooks", "settings", "plugin"]
+tools = ["claude-code", "cursor", "gemini-cli"]
+max_file_size_kib = 2048
+
+[policy]
+fail_on = "block"
+min_severity = "low"
+
+[score]
+critical = 70
+high = 25
+medium = 10
+low = 3
+always_loaded_multiplier = 1.5
+toxic_combo_bonus = 20
+block_at = 70
+review_at = 40
+
+[rules]
+extra_dirs = []
+disable = ["RS-EXF-003"]
+
+[rules.severity_override]
+"RS-SEC-003" = "low"
+
+[[suppress]]
+rule = "RS-EXEC-001"
+path = "skills/installer/SKILL.md"
+reason = "Documented installer; script is vendored and pinned."
+
+[explain]
+agent = "auto"
+timeout_secs = 120
+max_findings = 10
