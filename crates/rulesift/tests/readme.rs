@@ -115,3 +115,64 @@ fn contributing_lists_test_prerequisites() {
         assert!(section.contains(tool), "Prerequisites must mention {tool}");
     }
 }
+
+/// GitHub's heading anchor: lowercase, spaces to `-`, punctuation dropped.
+fn slug(heading: &str) -> String {
+    heading
+        .trim()
+        .to_lowercase()
+        .chars()
+        .filter_map(|c| match c {
+            ' ' => Some('-'),
+            c if c.is_alphanumeric() || c == '-' || c == '_' => Some(c),
+            _ => None,
+        })
+        .collect()
+}
+
+/// #108: every `docs/<page>.md#anchor` link in the sources points at a
+/// heading that exists.
+#[test]
+fn source_doc_anchors_resolve() {
+    let re = regex::Regex::new(r"docs/([A-Za-z0-9_/.-]+\.md)#([A-Za-z0-9_-]+)").unwrap();
+    let mut checked = 0;
+    for dir in ["crates/rulesift-core/src", "crates/rulesift/src"] {
+        for entry in walk(&root().join(dir)) {
+            if entry.extension().is_none_or(|e| e != "rs") {
+                continue;
+            }
+            let text = std::fs::read_to_string(&entry).unwrap();
+            for c in re.captures_iter(&text) {
+                let page = std::fs::read_to_string(root().join("docs").join(&c[1]))
+                    .unwrap_or_else(|_| panic!("{}: docs/{} missing", entry.display(), &c[1]));
+                let anchors: Vec<String> = page
+                    .lines()
+                    .filter_map(|l| l.strip_prefix('#'))
+                    .map(|l| slug(l.trim_start_matches('#')))
+                    .collect();
+                assert!(
+                    anchors.iter().any(|a| a == &c[2]),
+                    "{}: docs/{}#{} has no matching heading",
+                    entry.display(),
+                    &c[1],
+                    &c[2]
+                );
+                checked += 1;
+            }
+        }
+    }
+    assert!(checked > 0);
+}
+
+fn walk(dir: &Path) -> Vec<PathBuf> {
+    let mut out = Vec::new();
+    for e in std::fs::read_dir(dir).unwrap() {
+        let p = e.unwrap().path();
+        if p.is_dir() {
+            out.extend(walk(&p));
+        } else {
+            out.push(p);
+        }
+    }
+    out
+}

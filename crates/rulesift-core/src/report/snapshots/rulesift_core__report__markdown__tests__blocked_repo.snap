@@ -24,4 +24,4 @@ Scanned 3 agent files: 1 block, 0 review, 1 info, 1 ok. Repo score **100** (BLOC
 - **high** [`RS-INJ-001`](https://github.com/Widyasa/rulesift/blob/master/docs/rules/RS-INJ-001.md) .cursor/rules/style.mdc line 5: The text tries to override earlier or system instructions. This is the classic prompt-injection pattern; remove it.
 
 ---
-<sub>[RuleSift](https://github.com/Widyasa/rulesift) v0.0.0-test · offline scan, no code was executed · [How to suppress](https://github.com/Widyasa/rulesift/blob/master/docs/configuration.md#suppressions)</sub>
+<sub>[RuleSift](https://github.com/Widyasa/rulesift) v0.0.0-test · offline scan, no code was executed · [How to suppress](https://github.com/Widyasa/rulesift/blob/master/docs/configuration.md#suppressing-findings)</sub>

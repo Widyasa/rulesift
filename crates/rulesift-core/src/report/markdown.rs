@@ -15,7 +15,7 @@ pub const MAX_FINDINGS: usize = 20;
 pub const MAX_FILE_ROWS: usize = 100;
 /// Where suppressions are documented.
 pub const SUPPRESS_URI: &str =
-    "https://github.com/Widyasa/rulesift/blob/master/docs/configuration.md#suppressions";
+    "https://github.com/Widyasa/rulesift/blob/master/docs/configuration.md#suppressing-findings";
 
 /// Render untrusted text safely: hidden characters as `<U+XXXX>`, no raw
 /// newlines, and Markdown/HTML-significant characters escaped.
