@@ -4,7 +4,7 @@
 use crate::model::Report;
 
 /// The committed JSON Schema for [`to_json`] output.
-pub const SCHEMA: &str = include_str!("../../../../schemas/report.v1.json");
+pub const SCHEMA: &str = include_str!("../../data/report.v1.json");
 
 /// Serialize a report as pretty JSON (canonical order, trailing newline).
 pub fn to_json(report: &Report) -> String {

@@ -1,0 +1,365 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Widyasa/rulesift/blob/master/schemas/report.v1.json",
+  "title": "RuleSift report (schema_version 1)",
+  "description": "JSON output of `rulesift scan --format json` and `rulesift diff --format json`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "tool",
+    "root",
+    "summary",
+    "files",
+    "changes",
+    "lock"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "const": "rulesift"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "root": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "files_scanned",
+        "findings",
+        "block",
+        "review",
+        "info",
+        "ok",
+        "repo_score",
+        "repo_tier"
+      ],
+      "properties": {
+        "files_scanned": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "findings": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "block": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "review": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "info": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ok": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "repo_score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "repo_tier": {
+          "$ref": "#/$defs/tier"
+        }
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/file"
+      }
+    },
+    "changes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/change"
+      }
+    },
+    "lock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "present",
+        "violations"
+      ],
+      "properties": {
+        "present": {
+          "type": "boolean"
+        },
+        "violations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/lock_violation"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "tool": {
+      "enum": [
+        "claude-code",
+        "cursor",
+        "copilot",
+        "windsurf",
+        "cline",
+        "gemini-cli",
+        "roo-code",
+        "continue",
+        "zed",
+        "junie",
+        "kiro",
+        "codex",
+        "amazon-q",
+        "agents-md",
+        "agent-skills"
+      ]
+    },
+    "kind": {
+      "enum": [
+        "skill",
+        "instructions",
+        "command",
+        "agent",
+        "mcp-config",
+        "hooks",
+        "settings",
+        "plugin"
+      ]
+    },
+    "severity": {
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "tier": {
+      "enum": [
+        "ok",
+        "info",
+        "review",
+        "block"
+      ]
+    },
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "tool",
+        "kind",
+        "score",
+        "tier",
+        "breakdown",
+        "findings"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool": {
+          "$ref": "#/$defs/tool"
+        },
+        "kind": {
+          "$ref": "#/$defs/kind"
+        },
+        "score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "tier": {
+          "$ref": "#/$defs/tier"
+        },
+        "breakdown": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "weights",
+            "multiplier",
+            "bonus"
+          ],
+          "properties": {
+            "weights": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "multiplier": {
+              "type": "number",
+              "minimum": 0
+            },
+            "bonus": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/finding"
+          }
+        }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule_id",
+        "severity",
+        "title",
+        "message",
+        "path",
+        "line",
+        "column",
+        "end_line",
+        "evidence",
+        "fingerprint",
+        "suppressed"
+      ],
+      "properties": {
+        "rule_id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9]*(-[A-Z0-9]+)+$"
+        },
+        "severity": {
+          "$ref": "#/$defs/severity"
+        },
+        "title": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "column": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "end_line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "evidence": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "decoded": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "suppressed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "op",
+        "what",
+        "detail"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "+",
+            "-",
+            "~",
+            "!"
+          ]
+        },
+        "what": {
+          "enum": [
+            "file",
+            "mcp_server",
+            "hook",
+            "permission",
+            "allowed_tools",
+            "always_apply",
+            "instructions",
+            "lock"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        }
+      }
+    },
+    "lock_violation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule_id",
+        "path",
+        "message"
+      ],
+      "properties": {
+        "rule_id": {
+          "enum": [
+            "RS-LOCK-001",
+            "RS-LOCK-002",
+            "RS-LOCK-003"
+          ]
+        },
+        "path": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

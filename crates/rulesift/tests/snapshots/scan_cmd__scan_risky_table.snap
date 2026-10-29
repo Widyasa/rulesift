@@ -2,7 +2,7 @@
 source: crates/rulesift/tests/scan_cmd.rs
 expression: out
 ---
-RuleSift v0.0.1 · scanned 3 agent files
+RuleSift v0.1.0 · scanned 3 agent files
 
 .cursor/rules/style.mdc  score 38   INFO
   high      RS-INJ-001   line 5  The text tries to override earlier or system instructions. This is the classic prompt-injection pattern; remove it.

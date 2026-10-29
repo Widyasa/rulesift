@@ -2,7 +2,7 @@
 source: crates/rulesift/tests/scan_cmd.rs
 expression: out
 ---
-RuleSift v0.0.1 · scanned 60 agent files
+RuleSift v0.1.0 · scanned 60 agent files
 
 .amazonq/mcp.json                            score 25   INFO
   high      RS-MCP-003   line 4  MCP server `docs`: npx runs example-docs-mcp without a pinned version. Every start may run a different (possibly compromised) release; pin an exact version or digest.
