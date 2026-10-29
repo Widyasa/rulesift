@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "docs": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "example-docs-mcp"]
+    }
+  }
+}
