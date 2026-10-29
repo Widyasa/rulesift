@@ -253,7 +253,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: an in-process client test lists tools and calls `scan_path` and `reveal_file` on fixtures; `..` escape rejected.
   - Dep: W4-T6, W5-T1
 
-- [ ] **W5-T7 `scan --explain` adapters**
+- [x] **W5-T7 `scan --explain` adapters**
   - Description: `AgentAdapter` trait + codex, claude, cursor adapters per §11.2, prompt builder with untrusted-data preface, timeout. Re-check CLI flags against the docs linked in §11.2.
   - Files: `cli/explain/{mod,codex,claude,cursor,prompt}.rs`
   - Done when: snapshot tests of built commands and prompts; output parsing from fixture stdout; tests use fake scripts on a temp `PATH`; real agents only behind `RULESIFT_E2E_AGENT=1` + `#[ignore]`.
