@@ -1999,6 +1999,7 @@ dependencies = [
  "insta",
  "owo-colors",
  "predicates",
+ "regex",
  "rulesift-core",
  "serde-saphyr",
  "serde_json",

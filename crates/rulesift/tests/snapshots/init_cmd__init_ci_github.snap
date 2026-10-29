@@ -1,0 +1,14 @@
+---
+source: crates/rulesift/tests/init_cmd.rs
+expression: "text.replace(rulesift_core::VERSION, \"[version]\")"
+---
+name: RuleSift
+on: [pull_request, push]
+permissions: { contents: read, security-events: write, pull-requests: write }
+jobs:
+  rulesift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with: { fetch-depth: 0 }
+      - uses: Widyasa/rulesift@v[version]

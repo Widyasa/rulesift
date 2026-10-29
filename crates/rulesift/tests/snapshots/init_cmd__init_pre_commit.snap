@@ -1,0 +1,10 @@
+---
+source: crates/rulesift/tests/init_cmd.rs
+expression: "out.replace(rulesift_core::VERSION, \"[version]\")"
+---
+# Add to .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/Widyasa/rulesift
+    rev: v[version]
+    hooks:
+      - id: rulesift

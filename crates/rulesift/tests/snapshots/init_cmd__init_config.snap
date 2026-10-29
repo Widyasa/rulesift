@@ -1,0 +1,55 @@
+---
+source: crates/rulesift/tests/init_cmd.rs
+expression: text
+---
+# rulesift.toml — RuleSift configuration.
+# Docs: https://github.com/Widyasa/rulesift/blob/master/docs/configuration.md
+# Unknown keys are an error.
+
+[scan]
+# Files or directories to scan when no PATHS are given.
+paths = ["."]
+# Globs (relative to the scanned directory) to skip.
+exclude = ["node_modules/**", "target/**"]
+# File kinds to scan: skill, instructions, command, agent, mcp-config, hooks, settings, plugin.
+kinds = ["skill", "instructions", "command", "agent", "mcp-config", "hooks", "settings", "plugin"]
+# Tools to scan; empty = all (e.g. ["claude-code", "cursor", "gemini-cli"]).
+tools = []
+max_file_size_kib = 2048
+
+[policy]
+# Exit 1 when any file reaches this tier: block | review | info | never.
+fail_on = "block"
+# Hide findings below this severity (scores still use all findings).
+min_severity = "low"
+
+[score]
+critical = 70
+high = 25
+medium = 10
+low = 3
+always_loaded_multiplier = 1.5
+toxic_combo_bonus = 20
+block_at = 70
+review_at = 40
+
+[rules]
+# Extra directories with YAML rules.
+extra_dirs = []
+# Rule ids to disable, e.g. ["RS-EXF-003"].
+disable = []
+
+[rules.severity_override]
+# "RS-SEC-003" = "low"
+
+# Scoped suppressions; each needs a reason.
+# [[suppress]]
+# rule = "RS-EXEC-001"
+# path = "skills/installer/SKILL.md"
+# reason = "Documented installer; script is vendored and pinned."
+
+[explain]
+# Optional AI explanation with your own agent CLI: auto | codex | claude | cursor.
+agent = "auto"
+timeout_secs = 120
+max_findings = 10
