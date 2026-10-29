@@ -48,6 +48,7 @@ macro_rules! string_enum {
         }
     };
 }
+pub(crate) use string_enum;
 
 string_enum! {
     /// Kind of agent file (PRD §5 F1). Used by rules' `applies_to`.
