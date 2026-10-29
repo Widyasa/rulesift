@@ -65,8 +65,11 @@ repos:
       # - id: rulesift-system # uses a rulesift already on PATH
 ```
 
-The hook only runs on agent files (its `files` regex is generated from the
-registry).
+The hook only runs when an agent file changes (its `files` regex is generated
+from the registry). It then scans the repository like CI does, with
+`[scan].paths` and `exclude` from your `rulesift.toml`, rather than only the
+changed file names (`pass_filenames: false`), so excluded fixtures or vendored
+files never block a commit.
 
 ## Other CI systems
 

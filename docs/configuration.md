@@ -21,13 +21,17 @@ Unknown keys are an error.
 | Key | Default | Meaning |
 |---|---|---|
 | `paths` | `["."]` | What to scan when no paths are given on the command line |
-| `exclude` | `["node_modules/**", "target/**"]` | Globs (relative to the scanned directory) to skip |
+| `exclude` | `["node_modules/**", "target/**"]` | Globs to skip, matched relative to the directory of `rulesift.toml` (and to the scanned directory). They apply to walked files and to files passed explicitly on the command line |
 | `kinds` | all | `skill`, `instructions`, `command`, `agent`, `mcp-config`, `hooks`, `settings`, `plugin` |
 | `tools` | `[]` (all) | Tool ids from [supported-tools.md](supported-tools.md), e.g. `["cursor", "gemini-cli"]` |
 | `max_file_size_kib` | `2048` | Larger agent files are not scanned and are reported as [RS-FMT-008](rules/RS-FMT-008.md) (critical); larger auxiliary files inside a skill directory are skipped with a warning |
 
 The command-line flags `--kinds`, `--tools`, `--include`, and `--exclude`
 override these for one run.
+
+When several paths are passed, the config is looked up from the deepest
+directory that contains all of them (for example the repository root for
+`rulesift scan docs/AGENTS.md AGENTS.md`).
 
 ## `[policy]`
 

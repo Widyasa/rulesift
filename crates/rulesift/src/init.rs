@@ -262,12 +262,15 @@ pub fn pre_commit_hooks() -> String {
     format!(
         r#"# Generated from the RuleSift tool registry; do not edit by hand.
 # Regenerate with: RULESIFT_BLESS=1 cargo test -p rulesift --test init_cmd
+# The hooks run when an agent file changes and scan the repository with its
+# rulesift.toml (`[scan].paths`, `exclude`), like CI, instead of only the
+# changed file names (#103).
 - id: rulesift
   name: RuleSift
   description: Lint AI agent configuration files (skills, rules, MCP configs, hooks, settings).
   language: rust
   entry: rulesift scan --fail-on block
-  pass_filenames: true
+  pass_filenames: false
   files: '{re}'
 # Same hook using a rulesift binary already on PATH (cargo install, brew,
 # npm, pip, or a release download).
@@ -276,7 +279,7 @@ pub fn pre_commit_hooks() -> String {
   description: Lint AI agent configuration files with the rulesift binary on PATH.
   language: system
   entry: rulesift scan --fail-on block
-  pass_filenames: true
+  pass_filenames: false
   files: '{re}'
 "#
     )
