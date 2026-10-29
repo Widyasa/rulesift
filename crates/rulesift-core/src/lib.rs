@@ -6,5 +6,10 @@
 
 #![forbid(unsafe_code)]
 
+pub mod error;
+pub mod model;
+
+pub use error::{CoreError, Result};
+
 /// Crate version, as set in `Cargo.toml`.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
