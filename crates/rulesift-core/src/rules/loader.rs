@@ -20,6 +20,7 @@ macro_rules! builtin_files {
 /// in `rules/builtin/` is listed here.
 pub const BUILTIN: &[(&str, &str)] = builtin_files!(
     "exec.yaml",
+    "exf.yaml",
     "fmt.yaml",
     "hid.yaml",
     "inj.yaml",

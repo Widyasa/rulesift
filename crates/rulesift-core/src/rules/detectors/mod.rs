@@ -2,6 +2,7 @@
 
 pub mod base64;
 pub mod entropy;
+pub mod exfil_url;
 pub mod secrets;
 pub mod unicode;
 
@@ -20,6 +21,7 @@ pub const KNOWN_DETECTORS: &[&str] = &[
     "invisible_format",
     "base64_payload",
     "hardcoded_secret",
+    "exfil_url",
 ];
 
 /// One detector match inside a text.
@@ -152,6 +154,7 @@ pub fn run(name: &str, a: &crate::analyze::Analyzed) -> Vec<Loc> {
         "invisible_format" => hits(unicode::invisible_format),
         "base64_payload" => base64::base64_payload(a),
         "hardcoded_secret" => secrets::hardcoded_secret(a),
+        "exfil_url" => exfil_url::exfil_url(a),
         _ => Vec::new(),
     }
 }
