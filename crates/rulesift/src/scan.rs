@@ -103,7 +103,20 @@ pub fn prepare(g: &GlobalArgs, paths: &[PathBuf], o: &OutputArgs) -> anyhow::Res
     let (cfg, base) = common::load_config(g, &start)?;
     let rules = common::build_rules(g, &cfg, &base, &o.rules, &o.disable)?;
     let paths: Vec<PathBuf> = if paths.is_empty() {
-        cfg.scan.paths.iter().map(|p| base.join(p)).collect()
+        let cwd = std::env::current_dir().unwrap_or_default();
+        cfg.scan
+            .paths
+            .iter()
+            .map(|p| {
+                let full = base.join(p);
+                // keep paths relative to the working directory when possible
+                match full.strip_prefix(&cwd) {
+                    Ok(r) if r.as_os_str().is_empty() || r == Path::new(".") => PathBuf::from("."),
+                    Ok(r) => r.to_path_buf(),
+                    Err(_) => full,
+                }
+            })
+            .collect()
     } else {
         paths.to_vec()
     };

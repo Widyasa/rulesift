@@ -1,0 +1,2 @@
+# Empty config: keeps CLI tests that run inside fixture repos hermetic
+# (otherwise the repository-root rulesift.toml would be discovered).
