@@ -217,7 +217,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
 
 ## Week 5: Change awareness, CI, optional AI
 
-- [ ] **W5-T1 `rulesift lock` / `verify`**
+- [x] **W5-T1 `rulesift lock` / `verify`**
   - Description: §6.4 and §7.2 (sorted TOML, CRLF→LF normalization only, skill tree hashes, MCP server fingerprints with redacted env values); RS-LOCK-001..003.
   - Files: `core/lock.rs`, `cli/lock.rs`
   - Done when: tests for change, new file, missing file, CRLF-only change (no violation), and a zero-width-only change (violation).

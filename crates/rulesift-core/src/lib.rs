@@ -12,6 +12,7 @@ pub mod config;
 pub mod discovery;
 pub mod error;
 pub mod formats;
+pub mod lock;
 pub mod model;
 pub mod normalize;
 pub mod parse;

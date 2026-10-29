@@ -43,6 +43,10 @@ pub struct GlobalArgs {
 pub enum Command {
     /// Scan agent files and report findings, scores, and tiers.
     Scan(Box<crate::scan::ScanArgs>),
+    /// Write or update rulesift.lock for all agent files.
+    Lock(crate::lock::LockArgs),
+    /// Verify agent files against rulesift.lock (exit 1 on any difference).
+    Verify(crate::lock::VerifyArgs),
     /// Show hidden characters, decoded text, base64 payloads, and HTML comments in a file.
     Reveal(crate::reveal::RevealArgs),
     /// List, show, or test rules.
@@ -57,6 +61,8 @@ pub fn run(cli: Cli) -> anyhow::Result<ExitCode> {
     }
     match cli.command {
         Some(Command::Scan(a)) => crate::scan::run(&cli.global, &a),
+        Some(Command::Lock(a)) => crate::lock::run_lock(&cli.global, &a),
+        Some(Command::Verify(a)) => crate::lock::run_verify(&cli.global, &a),
         Some(Command::Reveal(a)) => crate::reveal::run(&cli.global, &a),
         Some(Command::Rules(a)) => crate::rules::run(&cli.global, &a),
         None => {
