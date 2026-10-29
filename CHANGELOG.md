@@ -72,6 +72,8 @@ Release-gate QA findings (#99–#109):
 - `scan` reports the real `rulesift.lock` state and violations in the JSON
   `lock` object instead of always `present: false`; `lock` is `null` when the
   lock was not checked (files, several paths, `diff --head`) (#106).
+- CONTRIBUTING lists the test prerequisites: Rust 1.89+, `git`, and `bash`
+  (#107).
 
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0
