@@ -65,7 +65,7 @@ pub fn run(g: &GlobalArgs, a: &DiffArgs) -> anyhow::Result<ExitCode> {
         prefixes.push(repo_prefix(&workdir, x)?);
     }
     let lock = if a.head.is_none() {
-        crate::lock::check(g, &workdir)?
+        Some(crate::lock::status(g, &workdir)?)
     } else {
         None
     };
@@ -83,7 +83,12 @@ pub fn run(g: &GlobalArgs, a: &DiffArgs) -> anyhow::Result<ExitCode> {
     let mut report = out.report;
     report.generated_at = Some(now_rfc3339());
     apply_min_severity(&mut report, p.min_severity);
-    let code = exit_code(&report, p.fail_on).max(u8::from(!report.lock.violations.is_empty()));
+    let code = exit_code(&report, p.fail_on).max(u8::from(
+        report
+            .lock
+            .as_ref()
+            .is_some_and(|l| !l.violations.is_empty()),
+    ));
     emit(
         g,
         &a.out,

@@ -477,13 +477,14 @@ fn analyze_bytes(path: &str, bytes: &[u8]) -> Option<Analyzed> {
 }
 
 /// Run diff mode: changed agent files, capability changes, a scan of head
-/// versions, and lock violations turned into `!` changes.
+/// versions, and lock violations turned into `!` changes. `lock` is the
+/// verified lock state of the working tree, or `None` if it was not checked.
 pub fn diff(
     repo: &GitRepo,
     rules: &RuleSet,
     opts: &DiffOptions,
     scan_opts: &ScanOptions,
-    lock: Option<Vec<LockViolation>>,
+    lock: Option<crate::model::LockStatus>,
 ) -> Result<DiffOutput> {
     let d: &DiscoveryOptions = &scan_opts.discovery;
     let include = build_set(&d.include)?;
@@ -539,9 +540,7 @@ pub fn diff(
             heads.push(n);
         }
     }
-    let lock_present = lock.is_some();
-    let violations = lock.unwrap_or_default();
-    for v in &violations {
+    for v in lock.iter().flat_map(|l| &l.violations) {
         changes.push(change(
             "rulesift.lock",
             ChangeOp::Lock,
@@ -560,10 +559,7 @@ pub fn diff(
         summary,
         files,
         changes,
-        lock: crate::model::LockStatus {
-            present: lock_present,
-            violations,
-        },
+        lock,
         warnings: vec![],
     };
     crate::report::canonicalize(&mut report);
@@ -678,7 +674,10 @@ pub(crate) mod tests {
                 root: ".".into(),
                 ..Default::default()
             },
-            Some(lock_violations(r)),
+            Some(crate::model::LockStatus {
+                present: true,
+                violations: lock_violations(r),
+            }),
         )
         .unwrap();
         let text = render(&out.report.changes);
@@ -699,8 +698,9 @@ pub(crate) mod tests {
             paths,
             vec![".claude/settings.json", ".mcp.json", "AGENTS.md"]
         );
-        assert!(out.report.lock.present);
-        assert!(!out.report.lock.violations.is_empty());
+        let lock = out.report.lock.as_ref().unwrap();
+        assert!(lock.present);
+        assert!(!lock.violations.is_empty());
         assert!(out.report.files.iter().any(|f| !f.findings.is_empty()));
     }
 
@@ -732,7 +732,7 @@ pub(crate) mod tests {
             "- CLAUDE.md  agent file removed (instructions, claude-code)\n"
         );
         assert!(out.report.files.is_empty());
-        assert!(!out.report.lock.present);
+        assert!(out.report.lock.is_none());
     }
 
     #[test]

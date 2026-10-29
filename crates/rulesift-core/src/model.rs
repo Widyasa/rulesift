@@ -401,9 +401,10 @@ pub struct Report {
     /// Capability changes (diff mode; empty for `scan`).
     #[serde(default)]
     pub changes: Vec<Change>,
-    /// Lockfile status.
+    /// Lockfile status, or `None` (JSON `null`) when the lock was not checked:
+    /// a scan of files or several paths, or a diff between two revisions.
     #[serde(default)]
-    pub lock: LockStatus,
+    pub lock: Option<LockStatus>,
     /// Discovery warnings (skipped or not fully scanned files), sorted.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub warnings: Vec<ReportWarning>,
@@ -467,7 +468,7 @@ pub struct Change {
 /// Lockfile state for a report.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct LockStatus {
-    /// Whether `rulesift.lock` exists.
+    /// Whether `rulesift.lock` exists in the checked directory.
     pub present: bool,
     /// Lock violations (RS-LOCK-00x).
     #[serde(default)]
@@ -622,7 +623,7 @@ mod tests {
             summary: Report::summarize(&files),
             files,
             changes: vec![],
-            lock: LockStatus::default(),
+            lock: None,
             warnings: vec![],
         };
         assert_eq!(r.summary.block, 1);

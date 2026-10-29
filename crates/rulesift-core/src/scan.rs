@@ -126,7 +126,7 @@ pub fn scan(rules: &RuleSet, opts: &ScanOptions) -> Result<ScanOutput> {
             summary,
             files,
             changes: vec![],
-            lock: Default::default(),
+            lock: None,
             warnings: d
                 .warnings
                 .iter()

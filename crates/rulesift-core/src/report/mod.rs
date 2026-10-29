@@ -22,7 +22,9 @@ pub fn canonicalize(r: &mut Report) {
         });
     }
     r.changes.sort();
-    r.lock.violations.sort();
+    if let Some(l) = &mut r.lock {
+        l.violations.sort();
+    }
     r.warnings.sort();
     r.warnings.dedup();
 }

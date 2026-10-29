@@ -74,10 +74,7 @@ expression: "serde_json::to_string_pretty(&v).unwrap()"
     }
   ],
   "generated_at": "[generated_at]",
-  "lock": {
-    "present": false,
-    "violations": []
-  },
+  "lock": null,
   "root": ".",
   "schema_version": 1,
   "summary": {

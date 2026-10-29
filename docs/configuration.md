@@ -147,3 +147,11 @@ then exits 1 with these findings:
 Line endings are normalized, but any other byte change, including invisible
 characters, changes the hash. MCP `env` values are never stored; only their
 names are.
+
+The `lock` object in JSON reports shows the lock state of the checked
+directory: `present` says whether it has a `rulesift.lock`, and `violations`
+lists the RS-LOCK findings. `rulesift scan <dir>` and `rulesift diff` against
+the working tree check the lock; `scan` reports violations (and prints a
+warning) without changing its exit code, while `verify` and `diff` exit 1.
+`lock` is `null` when the lock was not checked: a scan of single files or of
+several paths, or `diff --head` between two revisions.

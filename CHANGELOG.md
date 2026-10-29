@@ -69,6 +69,9 @@ Release-gate QA findings (#99–#109):
   (`disable-model-invocation`, `argument-hint`, `context`, `hooks`, …) for
   skills under `.claude/skills/` or a plugin's `skills/`, and no longer claims
   that unknown fields are ignored (#105).
+- `scan` reports the real `rulesift.lock` state and violations in the JSON
+  `lock` object instead of always `present: false`; `lock` is `null` when the
+  lock was not checked (files, several paths, `diff --head`) (#106).
 
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0

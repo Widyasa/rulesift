@@ -107,7 +107,7 @@ pub(crate) mod tests {
             summary: Report::summarize(&files),
             files,
             changes: vec![],
-            lock: LockStatus::default(),
+            lock: None,
             warnings: vec![],
         }
     }

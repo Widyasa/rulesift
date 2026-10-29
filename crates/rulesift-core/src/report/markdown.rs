@@ -99,15 +99,15 @@ pub fn to_markdown(report: &Report) -> String {
         let _ = writeln!(body, "```\n");
     }
 
-    if r.lock.present
-        && !r.lock.violations.is_empty()
+    let violations = r.lock.as_ref().map_or(&[][..], |l| &l.violations[..]);
+    if !violations.is_empty()
         && !r
             .changes
             .iter()
             .any(|c| c.op == crate::model::ChangeOp::Lock)
     {
         let _ = writeln!(body, "#### Lock violations\n");
-        for v in &r.lock.violations {
+        for v in violations {
             let _ = writeln!(
                 body,
                 "- [`{}`]({}) `{}` {}",
@@ -320,7 +320,7 @@ mod tests {
                     detail: "new agent file ".repeat(5),
                 })
                 .collect(),
-            lock: Default::default(),
+            lock: None,
             warnings: vec![],
         };
         let md = to_markdown(&r);

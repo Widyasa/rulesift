@@ -143,6 +143,20 @@ fn head_ref_and_paths_and_errors() {
         out.contains("AGENTS.md") && !out.contains(".mcp.json"),
         "{out}"
     );
+    // #106: between two revisions the lock is not checked: `null`
+    let (_, out, _) = run(bin(r).args([
+        "diff",
+        "--fail-on",
+        "never",
+        "--base",
+        &base,
+        "--head",
+        "HEAD",
+        "--format",
+        "json",
+    ]));
+    let v: serde_json::Value = serde_json::from_str(&out).unwrap();
+    assert!(v["lock"].is_null(), "{out}");
     let (code, _, err) = run(bin(r).args(["diff", "--base", "nope"]));
     assert_eq!(code, Some(2));
     assert!(err.contains("nope"));

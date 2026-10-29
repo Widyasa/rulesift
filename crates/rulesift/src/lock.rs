@@ -5,7 +5,7 @@ use crate::common;
 use clap::Args;
 use rulesift_core::discovery::{discover, DiscoveryOptions};
 use rulesift_core::lock::{self, Lockfile, LOCK_FILE};
-use rulesift_core::model::LockViolation;
+use rulesift_core::model::{LockStatus, LockViolation};
 use rulesift_core::scan::analyze_file;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -45,6 +45,26 @@ pub fn check(g: &GlobalArgs, root: &Path) -> anyhow::Result<Option<Vec<LockViola
         return Ok(None);
     };
     Ok(Some(lock::verify(&locked, &current(g, root)?)))
+}
+
+/// Lock state of `root` for a report: `present: false` without a lockfile.
+pub fn status(g: &GlobalArgs, root: &Path) -> anyhow::Result<LockStatus> {
+    Ok(match check(g, root)? {
+        None => LockStatus::default(),
+        Some(violations) => LockStatus {
+            present: true,
+            violations,
+        },
+    })
+}
+
+/// Lock state for `scan` (#106): checked when the scan covers exactly one
+/// directory, `None` (not checked) for files or several paths.
+pub fn scan_status(g: &GlobalArgs, paths: &[PathBuf]) -> anyhow::Result<Option<LockStatus>> {
+    match paths {
+        [p] if p.is_dir() => Ok(Some(status(g, p)?)),
+        _ => Ok(None),
+    }
 }
 
 fn verify_cmd(g: &GlobalArgs, root: &Path) -> anyhow::Result<ExitCode> {

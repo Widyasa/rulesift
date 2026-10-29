@@ -122,7 +122,7 @@ mod tests {
             name: Some("helper".into()),
             detail: "new MCP server `helper` runs `npx helper`".into(),
         });
-        r.lock = LockStatus {
+        r.lock = Some(LockStatus {
             present: true,
             violations: vec![LockViolation {
                 rule_id: "RS-LOCK-001".into(),
@@ -130,7 +130,7 @@ mod tests {
                 name: None,
                 message: "AGENTS.md changed since it was locked.".into(),
             }],
-        };
+        });
         let text = to_json(&r);
         check(&serde_json::from_str(&text).unwrap());
         assert!(text.contains("\"op\": \"+\""));
