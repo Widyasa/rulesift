@@ -1,0 +1,64 @@
+name: wheels
+
+# Build PyPI wheels with maturin (PRD §13, W6-T5). Builds and smoke-tests
+# only; uploading to PyPI is done by Widya (see docs/release-checklist.md).
+on:
+  pull_request:
+    paths: ["pyproject.toml", "Cargo.toml", "Cargo.lock", "crates/**", "rules/**"]
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wheel:
+    name: wheel (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu, manylinux: "2_17" }
+          - { os: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu, manylinux: "2_17" }
+          - { os: macos-latest, target: aarch64-apple-darwin }
+          # cross-compiled on Apple silicon; not smoke-tested (wheel is x86_64)
+          - { os: macos-latest, target: x86_64-apple-darwin, cross: true }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          target: ${{ matrix.target }}
+          manylinux: ${{ matrix.manylinux || 'auto' }}
+          args: --release --locked --out dist
+      - name: Smoke test in a fresh venv
+        if: ${{ !matrix.cross }}
+        shell: bash
+        run: |
+          python -m venv venv-rs
+          bin=venv-rs/bin; [ -d venv-rs/Scripts ] && bin=venv-rs/Scripts
+          "$bin/python" -m pip install --no-index --find-links dist rulesift
+          "$bin/rulesift" --version
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wheel-${{ matrix.target }}
+          path: dist/*.whl
+
+  sdist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sdist
+          path: dist/*.tar.gz
