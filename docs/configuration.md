@@ -47,8 +47,14 @@ the file's score, capped at 100. Two adjustments:
 
 - Files that agents always load (root `AGENTS.md`, `CLAUDE.md`,
   `alwaysApply: true` rules, hooks, settings, …) are multiplied by
-  `always_loaded_multiplier`.
+  `always_loaded_multiplier`. Skills and subagents whose frontmatter declares
+  `hooks:` count as always loaded too, like hooks in `settings.json`.
 - A file that both reads secrets and sends data out gets `toxic_combo_bonus`.
+
+A hook with a network or execution risk ([RS-CFG-002](rules/RS-CFG-002.md),
+high) puts its file at least in `review`: the score is raised to `review_at`
+wherever the hook is declared. Lowering the rule below `high` with
+`severity_override` removes this floor.
 
 The tier comes from the final score:
 

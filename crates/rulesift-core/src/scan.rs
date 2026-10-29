@@ -6,7 +6,7 @@ use crate::baseline::Baseline;
 use crate::config::{ScoreConfig, Suppression};
 use crate::discovery::{discover, DiscoveredFile, DiscoveryOptions, Warning};
 use crate::error::Result;
-use crate::model::{Breakdown, FileReport, Report, Tier, ToolInfo};
+use crate::model::{Breakdown, FileKind, FileReport, Report, Tier, ToolInfo};
 use crate::rules::engine;
 use crate::rules::loader::RuleSet;
 use crate::score::{score_all, FileMeta};
@@ -98,7 +98,7 @@ pub fn scan_analyzed(
             findings,
         });
         meta.push(FileMeta {
-            always_loaded: a.doc.always_loaded,
+            always_loaded: a.doc.always_loaded || frontmatter_hooks(&a),
             group: skill_group(&a),
         });
         kept.push(a);
@@ -108,6 +108,14 @@ pub fn scan_analyzed(
     let mut pairs: Vec<(FileReport, Analyzed)> = files.into_iter().zip(kept).collect();
     pairs.sort_by(|x, y| x.0.path.cmp(&y.0.path));
     Ok(pairs.into_iter().unzip())
+}
+
+/// A skill or subagent that declares hooks in its frontmatter: the hooks run
+/// on every matching event once it is active, like hooks in `settings.json`,
+/// so the file is scored as always loaded (#138).
+fn frontmatter_hooks(a: &Analyzed) -> bool {
+    matches!(a.doc.kind, FileKind::Skill | FileKind::Agent)
+        && a.hooks.as_ref().is_some_and(|h| !h.hooks.is_empty())
 }
 
 fn skill_group(a: &Analyzed) -> Option<String> {

@@ -7,6 +7,10 @@
 //! - B = toxic-combination bonus (default 20) when the same file or skill has
 //!   an RS-SEC-002/003 finding and an RS-EXF-* or RS-EXEC-001/002 finding.
 //!
+//! A live RS-CFG-002 finding (hook with network or execution risk) of high
+//! or critical severity raises the file score to at least `review_at`, in
+//! every location (#138).
+//!
 //! Repo score = max file score. Suppressed findings do not count.
 
 use crate::config::ScoreConfig;
@@ -21,6 +25,13 @@ pub fn is_secret_leg(id: &str) -> bool {
 /// Is this finding a "sends or executes" leg of the toxic combination?
 pub fn is_send_leg(id: &str) -> bool {
     id.starts_with("RS-EXF-") || matches!(id, "RS-EXEC-001" | "RS-EXEC-002")
+}
+
+/// Does this finding put its file in review at least? An auto-running hook
+/// with a network or execution risk (RS-CFG-002) must stand out wherever it
+/// is declared (#138); lowering the rule's severity below high opts out.
+pub fn is_review_floor(f: &Finding) -> bool {
+    f.rule_id == "RS-CFG-002" && f.severity >= crate::model::Severity::High
 }
 
 /// Do these (unsuppressed) findings form the toxic combination?
@@ -54,11 +65,14 @@ pub fn score_file(
         0
     };
     let raw = (f64::from(weights) * multiplier + f64::from(bonus)).round();
-    let score = if raw >= 100.0 {
+    let mut score = if raw >= 100.0 {
         100
     } else {
         raw.max(0.0) as u32
     };
+    if live.iter().any(|f| is_review_floor(f)) {
+        score = score.max(cfg.review_at);
+    }
     let tier = Tier::from_score_with(score, cfg.review_at, cfg.block_at);
     (
         score,
@@ -192,6 +206,28 @@ mod tests {
             let (s, t, _) = score_file(&fs, al, tx, &cfg);
             assert_eq!((s, t), (score, tier), "case {i}");
         }
+    }
+
+    #[test]
+    fn hook_risk_is_at_least_review() {
+        // #138: RS-CFG-002 lands in review in every location
+        let cfg = ScoreConfig::default();
+        for al in [false, true] {
+            let (s, t, b) = score_file(&[f("RS-CFG-002", High)], al, false, &cfg);
+            assert_eq!((s, t), (40, Tier::Review), "always_loaded={al}");
+            assert_eq!(b.weights, 25);
+        }
+        // a higher score is kept
+        let (s, t, _) = score_file(&[f("RS-CFG-002", High), f("RS-X", High)], true, false, &cfg);
+        assert_eq!((s, t), (75, Tier::Block));
+        // suppressed or downgraded below high: no floor
+        let mut sup = f("RS-CFG-002", High);
+        sup.suppressed = true;
+        assert_eq!(score_file(&[sup], false, false, &cfg).1, Tier::Ok);
+        assert_eq!(
+            score_file(&[f("RS-CFG-002", Medium)], false, false, &cfg).1,
+            Tier::Info
+        );
     }
 
     #[test]

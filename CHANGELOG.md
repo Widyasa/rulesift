@@ -132,6 +132,9 @@ Release-gate QA findings on 73c04df (#132–#138):
   `. <(curl …)`, `| deno run -`, `| bun run -`, and `| php`. An inline
   program that only mentions `exec` in a string literal
   (`print('exec' in d)`) is no longer flagged (#137).
+- Skills and subagents whose frontmatter declares hooks get the
+  always-loaded multiplier (1.5), like `settings.json`, and an RS-CFG-002
+  finding raises its file to at least `review` in every location (#138).
 
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0
