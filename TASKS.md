@@ -305,7 +305,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: every command in the README runs against the built binary (or is marked as needing the release); links checked.
   - Dep: W6-T2, W6-T5
 
-- [ ] **W6-T7 Dogfooding**
+- [x] **W6-T7 Dogfooding**
   - Description: run the Action (from source) on this repo on every PR; prepare `docs/adopt-in-patchsense.md` with the exact workflow file for `Widyasa/patchsense` (do not open PRs in other repos; Widya decides).
   - Files: `.github/workflows/rulesift.yml`, `docs/adopt-in-patchsense.md`
   - Done when: RuleSift scans its own repo green (fixtures excluded via config).

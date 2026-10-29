@@ -1,0 +1,14 @@
+version = 1
+generated_by = "rulesift 0.0.1"
+skill = []
+mcp_server = []
+
+[[file]]
+path = "AGENTS.md"
+kind = "instructions"
+sha256 = "df9215173190044bae09d5cc8ac579f2cc2dbbcf7a02148be28db337110ee759"
+
+[[file]]
+path = "CLAUDE.md"
+kind = "instructions"
+sha256 = "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49"
