@@ -103,7 +103,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: positive/negative RS-FMT-006 fixtures per dialect; always-loaded flag tested for every registry row.
   - Dep: W1-T8, W1-T5
 
-- [ ] **W2-T7 Unicode detectors**
+- [x] **W2-T7 Unicode detectors**
   - Description: detectors for Unicode Tags (decode to ASCII), bidi controls, zero-width characters (allow BOM at offset 0), variation selectors / invisible format characters in runs. Implement RS-UNI-001..004 findings with evidence rendered as `<U+XXXX>`.
   - Files: `core/rules/detectors/unicode.rs`, `tests/fixtures/unicode/*` (generate fixtures in a test helper rather than committing invisible text where possible)
   - Done when: each rule has positive/negative tests; decoded tag text matches; no raw invisible characters appear in any output.
