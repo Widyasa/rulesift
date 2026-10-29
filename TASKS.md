@@ -223,7 +223,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: tests for change, new file, missing file, CRLF-only change (no violation), and a zero-width-only change (violation).
   - Dep: W4-T5
 
-- [ ] **W5-T2 Git diff via `gix`**
+- [x] **W5-T2 Git diff via `gix`**
   - Description: list changed agent files between `--base` and `--head`/working tree; read file contents at both revisions.
   - Files: `core/git.rs`
   - Done when: tests create temp git repos (`tempfile`) and cover added, modified, deleted, renamed files.
