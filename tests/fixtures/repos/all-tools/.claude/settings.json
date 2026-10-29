@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": ["Bash(npm run test:*)", "Read"],
+    "deny": ["Read(./.env)"]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [{ "type": "command", "command": "echo formatted" }]
+      }
+    ]
+  }
+}

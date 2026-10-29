@@ -7,6 +7,7 @@
 #![forbid(unsafe_code)]
 
 pub mod config;
+pub mod discovery;
 pub mod error;
 pub mod model;
 pub mod registry;
