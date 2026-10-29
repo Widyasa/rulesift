@@ -131,7 +131,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: malformed rule files give English errors with file and rule id; all built-ins load in a test.
   - Dep: W2-T2, W2-T6, W3-T1
 
-- [ ] **W3-T4 Matchers and combinators**
+- [x] **W3-T4 Matchers and combinators**
   - Description: `regex`, `phrases` (`aho-corasick`, case-insensitive), `json_path`, `frontmatter`, `detector`; `any`/`all`/`not`; `scope` and `applies_to` filtering; evidence snippets (max 200 chars).
   - Files: `core/rules/engine.rs`
   - Done when: unit tests per matcher and combinator; findings sorted deterministically.

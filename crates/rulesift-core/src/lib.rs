@@ -6,6 +6,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod analyze;
 pub mod config;
 pub mod discovery;
 pub mod error;
