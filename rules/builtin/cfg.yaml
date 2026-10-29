@@ -24,7 +24,8 @@
   title: Hook command with network or execution risk
   severity: high
   category: agent-config
-  applies_to: [hooks, settings, plugin]
+  # skills and subagents: hooks declared in Claude Code frontmatter (#126)
+  applies_to: [hooks, settings, plugin, skill, agent]
   match:
     detector: hook_risk
   message: >

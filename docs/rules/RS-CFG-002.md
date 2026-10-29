@@ -2,11 +2,13 @@
 
 | Severity | Category | Applies to |
 |---|---|---|
-| high | agent-config | hooks, settings, plugin |
+| high | agent-config | hooks, settings, plugin, skill, agent |
 
 ## What it detects
 
 A hook runs automatically on agent events and its command makes a network call or matches a dangerous execution, exfiltration, or credential pattern. Hooks run without review on every event.
+
+Hooks are read from hooks files, settings, and plugin manifests, and from the `hooks:` field in the YAML frontmatter of Claude Code skills (`SKILL.md`) and subagents (`.claude/agents/*.md`), which use the same layout as `settings.json`.
 
 ## Why it matters
 
