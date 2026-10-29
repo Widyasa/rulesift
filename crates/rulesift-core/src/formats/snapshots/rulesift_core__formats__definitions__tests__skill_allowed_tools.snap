@@ -1,0 +1,24 @@
+---
+source: crates/rulesift-core/src/formats/definitions.rs
+expression: "fm_grants(\"skill.md\")"
+---
+[
+  {
+    "kind": "allowed_tool",
+    "value": "Bash(npm run format:*)",
+    "line": 4,
+    "pointer": "/allowed-tools"
+  },
+  {
+    "kind": "allowed_tool",
+    "value": "Edit",
+    "line": 4,
+    "pointer": "/allowed-tools"
+  },
+  {
+    "kind": "allowed_tool",
+    "value": "Read",
+    "line": 4,
+    "pointer": "/allowed-tools"
+  }
+]

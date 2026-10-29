@@ -1,0 +1,8 @@
+{
+  "name": "example-marketplace",
+  "owner": { "name": "Example Team" },
+  "plugins": [
+    { "name": "formatter", "source": "./plugins/formatter" },
+    { "name": "remote", "source": { "source": "github", "repo": "example/remote-plugin" } }
+  ]
+}

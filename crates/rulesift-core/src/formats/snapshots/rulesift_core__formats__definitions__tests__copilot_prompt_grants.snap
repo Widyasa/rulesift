@@ -1,0 +1,18 @@
+---
+source: crates/rulesift-core/src/formats/definitions.rs
+expression: "fm_grants(\"release.prompt.md\")"
+---
+[
+  {
+    "kind": "tool",
+    "value": "fetch",
+    "line": 4,
+    "pointer": "/tools"
+  },
+  {
+    "kind": "tool",
+    "value": "search",
+    "line": 4,
+    "pointer": "/tools"
+  }
+]

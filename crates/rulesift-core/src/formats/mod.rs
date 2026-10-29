@@ -1,10 +1,14 @@
 //! Normalizers: per-tool file formats → shared models (`McpServer`, `Hook`,
 //! settings, tool grants). Rules only ever see the normalized models.
 
+pub mod definitions;
+pub mod grants;
 pub mod hooks;
 pub mod mcp;
 pub mod mcp_toml;
 pub mod mcp_yaml;
+pub mod plugin;
+pub mod settings;
 
 use serde::{Deserialize, Serialize};
 

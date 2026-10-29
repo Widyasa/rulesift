@@ -1,0 +1,57 @@
+---
+source: crates/rulesift-core/src/formats/definitions.rs
+expression: "serde_json::to_string_pretty(&settings::normalize(&fixture(\"settings.json\"))).unwrap()"
+---
+{
+  "grants": [
+    {
+      "kind": "allow",
+      "value": "Bash(npm run test:*)",
+      "line": 3,
+      "pointer": "/permissions/allow/0"
+    },
+    {
+      "kind": "allow",
+      "value": "Read(~/notes/**)",
+      "line": 3,
+      "pointer": "/permissions/allow/1"
+    },
+    {
+      "kind": "ask",
+      "value": "Bash(git push:*)",
+      "line": 4,
+      "pointer": "/permissions/ask/0"
+    },
+    {
+      "kind": "deny",
+      "value": "Read(./.env)",
+      "line": 5,
+      "pointer": "/permissions/deny/0"
+    },
+    {
+      "kind": "deny",
+      "value": "WebFetch",
+      "line": 5,
+      "pointer": "/permissions/deny/1"
+    },
+    {
+      "kind": "default_mode",
+      "value": "acceptEdits",
+      "line": 6,
+      "pointer": "/permissions/defaultMode"
+    },
+    {
+      "kind": "enable_all_project_mcp_servers",
+      "value": "true",
+      "line": 8,
+      "pointer": "/enableAllProjectMcpServers"
+    },
+    {
+      "kind": "enabled_mcp_server",
+      "value": "docs",
+      "line": 9,
+      "pointer": "/enabledMcpjsonServers/0"
+    }
+  ],
+  "issues": []
+}

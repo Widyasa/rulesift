@@ -1,0 +1,46 @@
+---
+source: crates/rulesift-core/src/formats/definitions.rs
+expression: "serde_json::to_string_pretty(&plugin::normalize(&fixture(\"plugin.json\"),\nfalse)).unwrap()"
+---
+{
+  "kind": "plugin",
+  "name": "example-plugin",
+  "mcp": {
+    "servers": [
+      {
+        "name": "helper",
+        "transport": "stdio",
+        "command": "${CLAUDE_PLUGIN_ROOT}/bin/helper",
+        "args": [
+          "--stdio"
+        ],
+        "env": {},
+        "headers": {},
+        "auto_trust": false,
+        "auto_approve": [],
+        "disabled": false,
+        "pointer": "/mcpServers/helper",
+        "line": 6,
+        "field_lines": {
+          "args": 8,
+          "command": 7
+        }
+      }
+    ],
+    "issues": []
+  },
+  "hooks": {
+    "hooks": [
+      {
+        "tool": "claude-code",
+        "event": "SessionStart",
+        "command": "echo hello",
+        "pointer": "/hooks/SessionStart/0/hooks/0/command",
+        "line": 13
+      }
+    ],
+    "issues": []
+  },
+  "plugins": [],
+  "issues": []
+}

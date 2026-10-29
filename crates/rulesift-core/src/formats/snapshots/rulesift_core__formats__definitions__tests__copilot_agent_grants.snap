@@ -1,0 +1,30 @@
+---
+source: crates/rulesift-core/src/formats/definitions.rs
+expression: "fm_grants(\"copilot.agent.md\")"
+---
+[
+  {
+    "kind": "tool",
+    "value": "github/*",
+    "line": 4,
+    "pointer": "/tools"
+  },
+  {
+    "kind": "tool",
+    "value": "read",
+    "line": 4,
+    "pointer": "/tools"
+  },
+  {
+    "kind": "tool",
+    "value": "search",
+    "line": 4,
+    "pointer": "/tools"
+  },
+  {
+    "kind": "mcp_server",
+    "value": "github",
+    "line": 5,
+    "pointer": "/mcp-servers"
+  }
+]
