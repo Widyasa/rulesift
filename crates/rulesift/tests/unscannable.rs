@@ -452,6 +452,33 @@ fn skill_file_symlinks_outside_root_fail_closed() {
     );
 }
 
+/// A dangling symlink whose link text points outside the root may still
+/// resolve where the agent runs: at an agent location it fails closed
+/// (scan and diff agree, #133); inside the root it is a broken symlink.
+#[cfg(unix)]
+#[test]
+fn dangling_symlink_outside_root_fails_closed() {
+    let t = tempfile::tempdir().unwrap();
+    std::os::unix::fs::symlink(
+        "/nonexistent-rulesift/AGENTS.md",
+        t.path().join("AGENTS.md"),
+    )
+    .unwrap();
+    std::os::unix::fs::symlink("../../nonexistent-rulesift", t.path().join("CLAUDE.md")).unwrap();
+    std::os::unix::fs::symlink("missing.md", t.path().join("GEMINI.md")).unwrap();
+    let (code, json, err) = scan(t.path(), &["--format", "json"]);
+    assert_eq!(code, Some(1), "{json}\n{err}");
+    assert!(
+        err.contains("AGENTS.md: not scanned (RS-FMT-008): symlink points outside"),
+        "{err}"
+    );
+    assert!(
+        err.contains("CLAUDE.md: not scanned (RS-FMT-008): symlink points outside"),
+        "{err}"
+    );
+    assert!(err.contains("GEMINI.md: skipped: broken symlink"), "{err}");
+}
+
 #[cfg(unix)]
 #[test]
 fn unreadable_agent_file_fails_closed() {

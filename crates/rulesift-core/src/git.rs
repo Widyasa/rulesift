@@ -1,8 +1,9 @@
 //! Git access via `gix`: changed files between two revisions (or a revision
 //! and the working tree) and file contents at each side.
 
+use crate::discovery::{Listing, Reader};
 use crate::error::{CoreError, Result};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 /// How a file changed.
@@ -92,6 +93,95 @@ impl GitRepo {
             Some(id) => Ok(Some(self.blob(*id)?)),
             None => Ok(None),
         }
+    }
+
+    /// The tree of `rev` as a discovery [`Listing`] plus a [`Reader`] for
+    /// its blobs, so diff mode classifies a revision exactly like `scan`
+    /// classifies a checkout (#132/#133). Symlinks (mode 120000) are
+    /// resolved by their link text: inside the repository they stand for
+    /// their target file, outside it they are reported as escaping.
+    pub fn listing(&self, rev: &str) -> Result<(Listing, GitTree<'_>)> {
+        let tree = self
+            .repo
+            .rev_parse_single(rev)
+            .map_err(|e| CoreError::Git(format!("cannot resolve {rev:?}: {e}")))?
+            .object()
+            .map_err(git_err)?
+            .peel_to_tree()
+            .map_err(git_err)?;
+        let mut rec = gix::traverse::tree::Recorder::default();
+        tree.traverse().breadthfirst(&mut rec).map_err(git_err)?;
+        let mut blobs: BTreeMap<String, gix::ObjectId> = BTreeMap::new();
+        let mut links: BTreeMap<String, String> = BTreeMap::new();
+        let mut dirs: BTreeSet<String> = BTreeSet::new();
+        for e in rec.records {
+            let p = e.filepath.to_string();
+            if e.mode.is_tree() {
+                dirs.insert(p);
+            } else if e.mode.is_link() {
+                let target = self.blob(e.oid)?;
+                links.insert(p, String::from_utf8_lossy(&target).into_owned());
+            } else if e.mode.is_blob() {
+                blobs.insert(p, e.oid);
+            }
+        }
+        let root = self.workdir.clone();
+        let canon = std::fs::canonicalize(&root).unwrap_or_else(|_| root.clone());
+        let mut listing = Listing::default();
+        let mut map = blobs.clone();
+        for p in blobs.keys() {
+            listing.files.insert(p.clone(), root.join(p));
+        }
+        for (p, target) in &links {
+            let mut cur = (p.clone(), target.clone());
+            let mut resolved = None;
+            for _ in 0..40 {
+                match resolve_link(&cur.0, &cur.1, &canon) {
+                    Link::Inside(t) => {
+                        if let Some(id) = blobs.get(&t) {
+                            resolved = Some(Ok(*id));
+                        } else if let Some(next) = links.get(&t) {
+                            cur = (t, next.clone());
+                            continue;
+                        } else if dirs.contains(&t) {
+                            // a directory inside the root is scanned where it is
+                            resolved = Some(Err(true));
+                        }
+                    }
+                    Link::Outside(abs) => {
+                        let is_dir = std::fs::metadata(&abs).ok().map(|m| m.is_dir());
+                        listing.escaped.push((p.clone(), root.join(p), is_dir));
+                        resolved = Some(Err(true));
+                    }
+                }
+                break;
+            }
+            match resolved {
+                Some(Ok(id)) => {
+                    map.insert(p.clone(), id);
+                    listing.files.insert(p.clone(), root.join(p));
+                }
+                Some(Err(_)) => {}
+                None => listing.broken.push(p.clone()),
+            }
+        }
+        let mut all_dirs = dirs;
+        for p in map.keys() {
+            let mut cur = p.as_str();
+            while let Some((d, _)) = cur.rsplit_once('/') {
+                all_dirs.insert(d.to_string());
+                cur = d;
+            }
+        }
+        Ok((
+            listing,
+            GitTree {
+                repo: self,
+                root,
+                blobs: map,
+                dirs: all_dirs,
+            },
+        ))
     }
 
     fn worktree_files(&self, keep: &dyn Fn(&str) -> bool) -> BTreeMap<String, PathBuf> {
@@ -219,6 +309,96 @@ impl GitRepo {
     }
 }
 
+/// Where a symlink in a git tree points.
+enum Link {
+    /// A repo-relative path inside the repository.
+    Inside(String),
+    /// An absolute path outside it.
+    Outside(PathBuf),
+}
+
+/// Resolve the link text `target` of the symlink at repo-relative `link`
+/// lexically (`..` pops a directory). `canon_root` is the work tree.
+fn resolve_link(link: &str, target: &str, canon_root: &Path) -> Link {
+    let t = Path::new(target);
+    if t.is_absolute() {
+        return match t.strip_prefix(canon_root) {
+            Ok(r) => Link::Inside(
+                r.components()
+                    .map(|c| c.as_os_str().to_string_lossy().into_owned())
+                    .collect::<Vec<_>>()
+                    .join("/"),
+            ),
+            Err(_) => Link::Outside(t.to_path_buf()),
+        };
+    }
+    let mut parts: Vec<String> = link.split('/').map(str::to_string).collect();
+    parts.pop();
+    let mut escaped_by = 0usize;
+    for c in target.split(['/', '\\']) {
+        match c {
+            "" | "." => {}
+            ".." => {
+                if parts.pop().is_none() {
+                    escaped_by += 1;
+                }
+            }
+            other => parts.push(other.to_string()),
+        }
+    }
+    if escaped_by > 0 {
+        let mut abs = canon_root.to_path_buf();
+        for _ in 0..escaped_by {
+            abs.pop();
+        }
+        for p in &parts {
+            abs.push(p);
+        }
+        Link::Outside(abs)
+    } else {
+        Link::Inside(parts.join("/"))
+    }
+}
+
+/// [`Reader`] over the blobs of a git revision (see [`GitRepo::listing`]).
+pub struct GitTree<'a> {
+    repo: &'a GitRepo,
+    root: PathBuf,
+    blobs: BTreeMap<String, gix::ObjectId>,
+    dirs: BTreeSet<String>,
+}
+
+impl GitTree<'_> {
+    fn rel(&self, path: &Path) -> Option<String> {
+        let r = path.strip_prefix(&self.root).ok()?;
+        Some(
+            r.components()
+                .map(|c| c.as_os_str().to_string_lossy().into_owned())
+                .collect::<Vec<_>>()
+                .join("/"),
+        )
+    }
+}
+
+impl Reader for GitTree<'_> {
+    fn len(&self, path: &Path) -> std::io::Result<u64> {
+        self.read(path).map(|b| b.len() as u64)
+    }
+    fn read(&self, path: &Path) -> std::io::Result<Vec<u8>> {
+        let id = self
+            .rel(path)
+            .and_then(|r| self.blobs.get(&r).copied())
+            .ok_or_else(|| std::io::Error::from(std::io::ErrorKind::NotFound))?;
+        self.repo
+            .blob(id)
+            .map_err(|e| std::io::Error::other(e.to_string()))
+    }
+    fn exists(&self, path: &Path) -> bool {
+        self.rel(path)
+            .is_some_and(|r| r.is_empty() || self.blobs.contains_key(&r) || self.dirs.contains(&r))
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
@@ -311,6 +491,24 @@ pub(crate) mod tests {
         "M AGENTS.md",
         "D CLAUDE.md",
     ];
+
+    #[test]
+    fn symlink_targets_resolve_lexically() {
+        let root = Path::new("/r/repo");
+        let inside = |l: &str, t: &str| match resolve_link(l, t, root) {
+            Link::Inside(p) => Some(p),
+            Link::Outside(_) => None,
+        };
+        assert_eq!(inside("a/b/l", "../c/f").as_deref(), Some("a/c/f"));
+        assert_eq!(inside("l", "./x/../y").as_deref(), Some("y"));
+        assert_eq!(inside("l", "/r/repo/z").as_deref(), Some("z"));
+        assert!(inside("a/l", "../../ext").is_none());
+        assert!(inside("l", "/etc/passwd").is_none());
+        match resolve_link("a/l", "../../ext/x", root) {
+            Link::Outside(p) => assert_eq!(p, Path::new("/r/ext/x")),
+            Link::Inside(p) => panic!("{p}"),
+        }
+    }
 
     #[test]
     fn working_tree_changes() {

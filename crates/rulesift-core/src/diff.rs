@@ -4,18 +4,16 @@
 //! flags, segments), so it is the same for every tool.
 
 use crate::analyze::Analyzed;
-use crate::discovery::DiscoveryOptions;
-use crate::error::{CoreError, Result};
+use crate::discovery::{discover, discover_listing, DiscoveredFile, Discovery, DiscoveryOptions};
+use crate::error::Result;
 use crate::formats::grants::{Grant, GrantKind};
 use crate::formats::hooks::Hook;
 use crate::formats::mcp::{McpServer, Transport};
 use crate::git::{ChangeKind, ChangedFile, GitRepo};
 use crate::model::{Change, ChangeOp, LockViolation, Report, Scope, ToolInfo};
-use crate::registry::{self, Origin};
 use crate::rules::detectors::{truncate, unicode};
 use crate::rules::loader::RuleSet;
-use crate::scan::{scan_analyzed, ScanOptions};
-use globset::{Glob, GlobSet, GlobSetBuilder};
+use crate::scan::{analyze_file, scan_analyzed, ScanOptions};
 use std::collections::{BTreeMap, BTreeSet};
 
 /// What to compare.
@@ -436,46 +434,6 @@ pub fn lock_detail(v: &LockViolation) -> String {
     format!("{what} ({})", v.rule_id)
 }
 
-fn build_set(globs: &[String]) -> Result<GlobSet> {
-    let mut b = GlobSetBuilder::new();
-    for g in globs {
-        b.add(Glob::new(g).map_err(|e| CoreError::Glob {
-            pattern: g.clone(),
-            message: e.to_string(),
-        })?);
-    }
-    b.build().map_err(|e| CoreError::Glob {
-        pattern: globs.join(", "),
-        message: e.to_string(),
-    })
-}
-
-fn path_or_parent(set: &GlobSet, p: &str) -> bool {
-    if set.is_match(p) {
-        return true;
-    }
-    let mut cur = p;
-    while let Some((parent, _)) = cur.rsplit_once('/') {
-        if set.is_match(parent) {
-            return true;
-        }
-        cur = parent;
-    }
-    false
-}
-
-fn analyze_bytes(path: &str, bytes: &[u8]) -> Option<Analyzed> {
-    let row = registry::match_path(path, Origin::Walked)?;
-    let text = String::from_utf8_lossy(bytes);
-    let skill_dir = (row.kind == crate::model::FileKind::Skill)
-        .then(|| {
-            path.rsplit_once('/')
-                .map(|(d, _)| d.rsplit('/').next().unwrap_or(d))
-        })
-        .flatten();
-    Some(crate::analyze::analyze(path, path, row, skill_dir, &text))
-}
-
 /// Run diff mode: changed agent files, capability changes, a scan of head
 /// versions, and lock violations turned into `!` changes. `lock` is the
 /// verified lock state of the working tree, or `None` if it was not checked.
@@ -486,31 +444,98 @@ pub fn diff(
     scan_opts: &ScanOptions,
     lock: Option<crate::model::LockStatus>,
 ) -> Result<DiffOutput> {
-    let d: &DiscoveryOptions = &scan_opts.discovery;
-    let include = build_set(&d.include)?;
-    let exclude = build_set(&d.exclude)?;
-    let keep = |p: &str| -> bool {
-        let Some(row) = registry::match_path(p, Origin::Walked) else {
-            return false;
-        };
-        if row.release != registry::Release::Mvp {
-            return false;
+    // Classify both sides with the same discovery as `scan` (skill
+    // supporting files, RS-FMT-008 for oversized, unreadable, NUL-padded
+    // files and symlinks pointing outside the repository), so a PR cannot
+    // pass `diff` with a change `scan` blocks (#132/#133).
+    let mut dopts: DiscoveryOptions = scan_opts.discovery.clone();
+    let workdir = repo.workdir().to_path_buf();
+    dopts.anchor = Some(workdir.clone());
+    dopts.display_base = None;
+    let side = |rev: Option<&str>| -> Result<Discovery> {
+        match rev {
+            Some(rev) => {
+                let (listing, tree) = repo.listing(rev)?;
+                discover_listing(&workdir, listing, &tree, &dopts)
+            }
+            None => discover(std::slice::from_ref(&workdir), &dopts),
         }
-        if !opts.prefixes.is_empty()
-            && !opts.prefixes.iter().any(|x| {
+    };
+    let base_d = side(Some(&opts.base))?;
+    let head_d = side(opts.head.as_deref())?;
+    let in_prefix = |p: &str| -> bool {
+        opts.prefixes.is_empty()
+            || opts.prefixes.iter().any(|x| {
                 let x = x.trim_start_matches("./").trim_end_matches('/');
                 x.is_empty() || x == "." || p == x || p.starts_with(&format!("{x}/"))
             })
-        {
-            return false;
-        }
-        if path_or_parent(&exclude, p) || (!d.include.is_empty() && !include.is_match(p)) {
-            return false;
-        }
-        (d.kinds.is_empty() || d.kinds.contains(&row.kind))
-            && (d.tools.is_empty() || d.tools.contains(&row.tool))
     };
-    let changed = repo.changed(&opts.base, opts.head.as_deref(), &keep)?;
+    let by_path = |d: &Discovery| -> BTreeMap<String, DiscoveredFile> {
+        d.files
+            .iter()
+            .filter(|f| in_prefix(&f.path))
+            .map(|f| (f.path.clone(), f.clone()))
+            .collect()
+    };
+    let old_files = by_path(&base_d);
+    let new_files = by_path(&head_d);
+    // what a file "is" for change detection: its content, or why it could
+    // not be read
+    let content = |f: &DiscoveredFile| -> Vec<u8> {
+        match &f.unscannable {
+            Some(why) if f.text.is_empty() => format!("\0unscannable: {why}").into_bytes(),
+            _ => f.text.clone().into_bytes(),
+        }
+    };
+    let mut changed: Vec<ChangedFile> = Vec::new();
+    let mut added = Vec::new();
+    let mut deleted: Vec<&String> = old_files
+        .keys()
+        .filter(|p| !new_files.contains_key(*p))
+        .collect();
+    for (p, n) in &new_files {
+        match old_files.get(p) {
+            Some(o) if content(o) == content(n) && o.row.id == n.row.id => {}
+            Some(o) => changed.push(ChangedFile {
+                path: p.clone(),
+                kind: ChangeKind::Modified,
+                old: Some(content(o)),
+                new: Some(content(n)),
+            }),
+            None => added.push(p),
+        }
+    }
+    for a in added {
+        let nb = content(&new_files[a]);
+        if let Some(i) = deleted
+            .iter()
+            .position(|d| content(&old_files[*d]) == nb && old_files[*d].unscannable.is_none())
+        {
+            let from = deleted.remove(i).clone();
+            changed.push(ChangedFile {
+                path: a.clone(),
+                kind: ChangeKind::Renamed { from },
+                old: Some(nb.clone()),
+                new: Some(nb),
+            });
+        } else {
+            changed.push(ChangedFile {
+                path: a.clone(),
+                kind: ChangeKind::Added,
+                old: None,
+                new: Some(nb),
+            });
+        }
+    }
+    for d in deleted {
+        changed.push(ChangedFile {
+            path: d.clone(),
+            kind: ChangeKind::Deleted,
+            old: Some(content(&old_files[d])),
+            new: None,
+        });
+    }
+    changed.sort_by(|a, b| a.path.cmp(&b.path));
     let mut changes = Vec::new();
     let mut heads = Vec::new();
     for c in &changed {
@@ -518,28 +543,47 @@ pub fn diff(
             ChangeKind::Renamed { from } => from.as_str(),
             _ => c.path.as_str(),
         };
-        let old = c.old.as_deref().and_then(|b| analyze_bytes(old_path, b));
-        let new = c.new.as_deref().and_then(|b| analyze_bytes(&c.path, b));
-        if let ChangeKind::Renamed { from } = &c.kind {
-            changes.push(change(
-                &c.path,
-                ChangeOp::Changed,
-                "file",
-                None,
-                format!("renamed from {from}"),
-            ));
-            changes.extend(
-                capability_changes(&c.path, old.as_ref(), new.as_ref())
-                    .into_iter()
-                    .filter(|x| x.what != "instructions"),
-            );
-        } else {
-            changes.extend(capability_changes(&c.path, old.as_ref(), new.as_ref()));
+        let old_f = c.old.as_ref().and_then(|_| old_files.get(old_path));
+        let new_f = c.new.as_ref().and_then(|_| new_files.get(&c.path));
+        // a real binary asset carries no capabilities; only a rule hit on
+        // its printable text is reported (#136)
+        let is_binary = |f: Option<&DiscoveredFile>| f.is_none_or(|f| f.binary.is_some());
+        let binary = is_binary(old_f) && is_binary(new_f);
+        let old = old_f.map(analyze_file);
+        let new = new_f.map(analyze_file);
+        if !binary {
+            if let ChangeKind::Renamed { from } = &c.kind {
+                changes.push(change(
+                    &c.path,
+                    ChangeOp::Changed,
+                    "file",
+                    None,
+                    format!("renamed from {from}"),
+                ));
+                changes.extend(
+                    capability_changes(&c.path, old.as_ref(), new.as_ref())
+                        .into_iter()
+                        .filter(|x| x.what != "instructions"),
+                );
+            } else {
+                changes.extend(capability_changes(&c.path, old.as_ref(), new.as_ref()));
+            }
         }
         if let Some(n) = new {
             heads.push(n);
         }
     }
+    // discovery warnings the change introduced (new skipped files, ...)
+    let base_warn: BTreeSet<&crate::discovery::Warning> = base_d.warnings.iter().collect();
+    let warnings: Vec<crate::model::ReportWarning> = head_d
+        .warnings
+        .iter()
+        .filter(|w| in_prefix(&w.path) && !base_warn.contains(w))
+        .map(|w| crate::model::ReportWarning {
+            path: w.path.clone(),
+            message: w.message.clone(),
+        })
+        .collect();
     for v in lock.iter().flat_map(|l| &l.violations) {
         changes.push(change(
             "rulesift.lock",
@@ -560,7 +604,7 @@ pub fn diff(
         files,
         changes,
         lock,
-        warnings: vec![],
+        warnings,
     };
     crate::report::canonicalize(&mut report);
     Ok(DiffOutput { report, changed })
