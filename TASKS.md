@@ -299,7 +299,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: `maturin build` produces a wheel whose `rulesift --version` works in a fresh venv (CI job).
   - Dep: W6-T4
 
-- [ ] **W6-T6 README, docs, demo**
+- [x] **W6-T6 README, docs, demo**
   - Description: user README (start from the handoff `README.md`), `docs/` (configuration, supported tools, rules index, CI, MCP, explain), `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`, and a reproducible demo script (`scripts/demo.sh`) for the `reveal` GIF using harmless fixtures.
   - Files: `README.md`, `docs/*.md`, `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`, `scripts/demo.sh`
   - Done when: every command in the README runs against the built binary (or is marked as needing the release); links checked.

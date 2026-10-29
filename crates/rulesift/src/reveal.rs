@@ -33,7 +33,12 @@ pub fn render(path: &str, text: &str) -> String {
         return out;
     }
     if !r.hidden.is_empty() {
-        let _ = writeln!(out, "\nHidden characters ({} runs):", r.hidden.len());
+        let n = r.hidden.len();
+        let _ = writeln!(
+            out,
+            "\nHidden characters ({n} {}):",
+            if n == 1 { "run" } else { "runs" }
+        );
         for h in &r.hidden {
             let more = if h.count > h.code_points.len() {
                 " …"
