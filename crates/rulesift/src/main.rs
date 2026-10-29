@@ -5,6 +5,7 @@
 mod cli;
 mod common;
 mod diff;
+mod explain;
 mod init;
 mod lock;
 mod mcp;

@@ -1,0 +1,7 @@
+---
+source: crates/rulesift/src/explain/mod.rs
+expression: out
+---
+codex: ["codex", "exec", "--sandbox", "read-only", "--ephemeral", "--skip-git-repo-check", "-o", "/tmp/rulesift-explain/last.md", "PROMPT"]
+claude: ["claude", "-p", "--output-format", "json", "--no-session-persistence", "PROMPT"]
+cursor: ["agent", "-p", "--output-format", "json", "PROMPT"]

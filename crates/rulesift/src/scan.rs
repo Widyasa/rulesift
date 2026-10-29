@@ -5,7 +5,7 @@ use crate::common;
 use anyhow::{bail, Context};
 use clap::{Args, ValueEnum};
 use rulesift_core::baseline::Baseline;
-use rulesift_core::config::FailOn;
+use rulesift_core::config::{AgentChoice, FailOn};
 use rulesift_core::discovery::DiscoveryOptions;
 use rulesift_core::model::{FileKind, Report, Severity, Tool};
 use rulesift_core::scan::{scan, ScanOptions, ScanOutput};
@@ -37,6 +37,12 @@ pub struct ScanArgs {
     pub paths: Vec<PathBuf>,
     #[command(flatten)]
     pub out: OutputArgs,
+    /// Ask your own agent CLI (codex, claude, or cursor) to explain the top findings.
+    #[arg(long)]
+    pub explain: bool,
+    /// Agent for --explain (default: RULESIFT_AGENT, then `[explain].agent`, then auto).
+    #[arg(long, value_name = "AGENT", value_parser = parse_enum::<AgentChoice>, requires = "explain")]
+    pub agent: Option<AgentChoice>,
 }
 
 /// Output and policy options shared by `scan` and `diff`.
@@ -96,6 +102,8 @@ pub struct Prepared {
     pub fail_on: FailOn,
     /// Minimum severity shown.
     pub min_severity: Severity,
+    /// `[explain]` settings.
+    pub explain: rulesift_core::config::ExplainConfig,
 }
 
 /// Resolve config, rules, and options.
@@ -156,6 +164,7 @@ pub fn prepare(g: &GlobalArgs, paths: &[PathBuf], o: &OutputArgs) -> anyhow::Res
         rules,
         fail_on: o.fail_on.unwrap_or(cfg.policy.fail_on),
         min_severity: o.min_severity.unwrap_or(cfg.policy.min_severity),
+        explain: cfg.explain.clone(),
     })
 }
 
@@ -256,7 +265,31 @@ pub fn run(g: &GlobalArgs, a: &ScanArgs) -> anyhow::Result<ExitCode> {
             rules: &p.rules.rules,
         },
     )?;
+    if a.explain {
+        print_explanation(&report, &p, a.agent, a.out.format == Format::Table);
+    }
     Ok(ExitCode::from(code))
+}
+
+/// Run `--explain`; failures are warnings and never change the exit code.
+fn print_explanation(report: &Report, p: &Prepared, agent: Option<AgentChoice>, to_stdout: bool) {
+    use rulesift_core::rules::detectors::unicode;
+    match crate::explain::explain(report, &p.explain, agent) {
+        Ok(None) => {}
+        Ok(Some(e)) => {
+            let text = format!(
+                "\nAI explanation ({}; advisory, generated from untrusted file content):\n{}\n",
+                e.agent,
+                unicode::render(&e.text)
+            );
+            if to_stdout {
+                print!("{text}");
+            } else {
+                eprint!("{text}");
+            }
+        }
+        Err(e) => eprintln!("warning: --explain failed: {e}"),
+    }
 }
 
 /// Current UTC time as RFC 3339 (seconds), without extra crates.
