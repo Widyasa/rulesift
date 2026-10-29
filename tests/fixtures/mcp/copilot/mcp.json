@@ -1,0 +1,18 @@
+{
+  // VS Code allows comments in mcp.json
+  "inputs": [
+    { "type": "promptString", "id": "api-key", "description": "API key", "password": true }
+  ],
+  "servers": {
+    "github": {
+      "type": "http",
+      "url": "https://api.x.example/mcp/"
+    },
+    "local": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["-m", "example_server"],
+      "env": { "API_KEY": "${input:api-key}" },
+    }
+  }
+}

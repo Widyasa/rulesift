@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "docs": {
+      "command": "npx",
+      "args": ["-y", "@example/docs-mcp@1.2.3"],
+      "env": { "DOCS_TOKEN": "${DOCS_TOKEN}" }
+    },
+    "remote": {
+      "type": "http",
+      "url": "https://mcp.x.example/mcp",
+      "headers": { "Authorization": "Bearer ${API_KEY}" }
+    }
+  }
+}

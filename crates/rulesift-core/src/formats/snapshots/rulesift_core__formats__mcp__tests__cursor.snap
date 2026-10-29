@@ -1,0 +1,47 @@
+---
+source: crates/rulesift-core/src/formats/mcp.rs
+expression: "snap(\"cursor/mcp.json\")"
+---
+{
+  "servers": [
+    {
+      "name": "local",
+      "transport": "stdio",
+      "command": "python",
+      "args": [
+        "server.py"
+      ],
+      "env": {
+        "MODE": "dev"
+      },
+      "headers": {},
+      "auto_trust": false,
+      "auto_approve": [],
+      "disabled": false,
+      "pointer": "/mcpServers/local",
+      "line": 6,
+      "field_lines": {
+        "args": 8,
+        "command": 7,
+        "env": 9
+      }
+    },
+    {
+      "name": "search",
+      "transport": "http",
+      "args": [],
+      "env": {},
+      "url": "https://search.x.example/sse",
+      "headers": {},
+      "auto_trust": false,
+      "auto_approve": [],
+      "disabled": false,
+      "pointer": "/mcpServers/search",
+      "line": 3,
+      "field_lines": {
+        "url": 4
+      }
+    }
+  ],
+  "issues": []
+}

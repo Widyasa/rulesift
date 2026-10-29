@@ -1,0 +1,48 @@
+---
+source: crates/rulesift-core/src/formats/mcp.rs
+expression: "snap(\"gemini-cli/settings.json\")"
+---
+{
+  "servers": [
+    {
+      "name": "trusted",
+      "transport": "stdio",
+      "command": "node",
+      "args": [
+        "server.js"
+      ],
+      "env": {},
+      "headers": {},
+      "auto_trust": true,
+      "auto_approve": [],
+      "disabled": false,
+      "pointer": "/mcpServers/trusted",
+      "line": 4,
+      "field_lines": {
+        "args": 6,
+        "command": 5,
+        "trust": 7
+      }
+    },
+    {
+      "name": "web",
+      "transport": "http",
+      "args": [],
+      "env": {},
+      "url": "https://web.x.example/mcp",
+      "headers": {
+        "X-Client": "gemini"
+      },
+      "auto_trust": false,
+      "auto_approve": [],
+      "disabled": false,
+      "pointer": "/mcpServers/web",
+      "line": 9,
+      "field_lines": {
+        "headers": 11,
+        "httpUrl": 10
+      }
+    }
+  ],
+  "issues": []
+}

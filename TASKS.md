@@ -73,7 +73,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: tests show correct positions for nested keys, arrays, escaped strings, and CRLF files.
   - Dep: W1-T3
 
-- [ ] **W2-T2 MCP normalizer: JSON family**
+- [x] **W2-T2 MCP normalizer: JSON family**
   - Description: one `McpServer` model (PRD §5 F1) filled from JSON configs with keys `mcpServers` (`.mcp.json`, `.cursor/mcp.json`, `claude_desktop_config.json`, `.roo/mcp.json`, `.kiro/settings/mcp.json`, `.junie/mcp/mcp.json`, `.gemini/settings.json`, `.amazonq/mcp.json`, Continue `*.json`), `servers` (`.vscode/mcp.json`), and `context_servers` (`.zed/settings.json`). Map `trust`/`alwaysAllow` into `auto_trust`/`auto_approve`. RS-FMT-007 for invalid files. Re-check field names against the §5.1 doc links.
   - Files: `core/formats/mcp.rs`, `tests/fixtures/mcp/<tool>/*`
   - Done when: one fixture per JSON source normalizes to the expected `McpServer` list (snapshot) with positions; invalid fixture yields RS-FMT-007.

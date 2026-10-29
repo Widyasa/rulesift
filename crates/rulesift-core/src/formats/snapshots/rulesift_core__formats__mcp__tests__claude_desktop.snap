@@ -1,0 +1,30 @@
+---
+source: crates/rulesift-core/src/formats/mcp.rs
+expression: "snap(\"claude-desktop/claude_desktop_config.json\")"
+---
+{
+  "servers": [
+    {
+      "name": "filesystem",
+      "transport": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@example/fs-mcp@0.4.0",
+        "/tmp/example"
+      ],
+      "env": {},
+      "headers": {},
+      "auto_trust": false,
+      "auto_approve": [],
+      "disabled": false,
+      "pointer": "/mcpServers/filesystem",
+      "line": 3,
+      "field_lines": {
+        "args": 5,
+        "command": 4
+      }
+    }
+  ],
+  "issues": []
+}

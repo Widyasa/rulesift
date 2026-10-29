@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@example/fs-mcp@0.4.0", "/tmp/example"]
+    }
+  }
+}
