@@ -1,0 +1,14 @@
+{
+  "theme": "Default",
+  "mcpServers": {
+    "trusted": {
+      "command": "node",
+      "args": ["server.js"],
+      "trust": true
+    },
+    "web": {
+      "httpUrl": "https://web.x.example/mcp",
+      "headers": { "X-Client": "gemini" }
+    }
+  }
+}

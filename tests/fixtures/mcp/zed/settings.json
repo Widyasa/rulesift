@@ -1,0 +1,18 @@
+{
+  "theme": "One Dark",
+  "context_servers": {
+    "local-mcp-server": {
+      "command": "some-command",
+      "args": ["arg-1", "arg-2"],
+      "env": {}
+    },
+    "legacy": {
+      "source": "custom",
+      "command": { "path": "legacy-mcp", "args": ["--stdio"], "env": { "A": "1" } }
+    },
+    "remote-mcp-server": {
+      "url": "https://mcp.x.example/mcp",
+      "headers": { "Authorization": "Bearer <token>" }
+    }
+  }
+}

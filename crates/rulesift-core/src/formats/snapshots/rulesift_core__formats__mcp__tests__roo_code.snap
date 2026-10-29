@@ -1,0 +1,32 @@
+---
+source: crates/rulesift-core/src/formats/mcp.rs
+expression: "snap(\"roo-code/mcp.json\")"
+---
+{
+  "servers": [
+    {
+      "name": "tasks",
+      "transport": "stdio",
+      "command": "node",
+      "args": [
+        "tasks.js"
+      ],
+      "env": {},
+      "headers": {},
+      "auto_trust": false,
+      "auto_approve": [
+        "add_task",
+        "list_tasks"
+      ],
+      "disabled": false,
+      "pointer": "/mcpServers/tasks",
+      "line": 3,
+      "field_lines": {
+        "alwaysAllow": 6,
+        "args": 5,
+        "command": 4
+      }
+    }
+  ],
+  "issues": []
+}

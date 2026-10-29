@@ -1,0 +1,50 @@
+---
+source: crates/rulesift-core/src/formats/mcp.rs
+expression: "snap(\"copilot/mcp.json\")"
+---
+{
+  "servers": [
+    {
+      "name": "github",
+      "transport": "http",
+      "args": [],
+      "env": {},
+      "url": "https://api.x.example/mcp/",
+      "headers": {},
+      "auto_trust": false,
+      "auto_approve": [],
+      "disabled": false,
+      "pointer": "/servers/github",
+      "line": 7,
+      "field_lines": {
+        "type": 8,
+        "url": 9
+      }
+    },
+    {
+      "name": "local",
+      "transport": "stdio",
+      "command": "python",
+      "args": [
+        "-m",
+        "example_server"
+      ],
+      "env": {
+        "API_KEY": "${input:api-key}"
+      },
+      "headers": {},
+      "auto_trust": false,
+      "auto_approve": [],
+      "disabled": false,
+      "pointer": "/servers/local",
+      "line": 11,
+      "field_lines": {
+        "args": 14,
+        "command": 13,
+        "env": 15,
+        "type": 12
+      }
+    }
+  ],
+  "issues": []
+}

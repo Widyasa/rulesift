@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "tasks": {
+      "command": "node",
+      "args": ["tasks.js"],
+      "alwaysAllow": ["list_tasks", "add_task"],
+      "disabled": false
+    }
+  }
+}

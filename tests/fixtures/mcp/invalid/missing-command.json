@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "ok": {
+      "command": "echo",
+      "args": ["hi"]
+    },
+    "broken": {
+      "args": ["--port", "1"]
+    }
+  }
+}

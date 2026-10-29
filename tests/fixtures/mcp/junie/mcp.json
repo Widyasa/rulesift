@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "db": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "example/db-mcp:1.0"]
+    }
+  }
+}

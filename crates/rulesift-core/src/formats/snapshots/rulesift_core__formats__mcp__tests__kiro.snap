@@ -1,0 +1,32 @@
+---
+source: crates/rulesift-core/src/formats/mcp.rs
+expression: "snap(\"kiro/mcp.json\")"
+---
+{
+  "servers": [
+    {
+      "name": "fetcher",
+      "transport": "stdio",
+      "command": "uvx",
+      "args": [
+        "example-fetch-mcp==1.0.0"
+      ],
+      "env": {},
+      "headers": {},
+      "auto_trust": false,
+      "auto_approve": [
+        "fetch"
+      ],
+      "disabled": false,
+      "pointer": "/mcpServers/fetcher",
+      "line": 3,
+      "field_lines": {
+        "args": 5,
+        "autoApprove": 8,
+        "command": 4,
+        "env": 6
+      }
+    }
+  ],
+  "issues": []
+}

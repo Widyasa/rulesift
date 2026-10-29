@@ -1,0 +1,31 @@
+---
+source: crates/rulesift-core/src/formats/mcp.rs
+expression: "snap(\"junie/mcp.json\")"
+---
+{
+  "servers": [
+    {
+      "name": "db",
+      "transport": "stdio",
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "example/db-mcp:1.0"
+      ],
+      "env": {},
+      "headers": {},
+      "auto_trust": false,
+      "auto_approve": [],
+      "disabled": false,
+      "pointer": "/mcpServers/db",
+      "line": 3,
+      "field_lines": {
+        "args": 5,
+        "command": 4
+      }
+    }
+  ],
+  "issues": []
+}

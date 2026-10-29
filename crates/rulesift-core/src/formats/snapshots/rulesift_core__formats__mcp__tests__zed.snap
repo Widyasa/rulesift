@@ -1,0 +1,69 @@
+---
+source: crates/rulesift-core/src/formats/mcp.rs
+expression: "snap(\"zed/settings.json\")"
+---
+{
+  "servers": [
+    {
+      "name": "legacy",
+      "transport": "stdio",
+      "command": "legacy-mcp",
+      "args": [
+        "--stdio"
+      ],
+      "env": {
+        "A": "1"
+      },
+      "headers": {},
+      "auto_trust": false,
+      "auto_approve": [],
+      "disabled": false,
+      "pointer": "/context_servers/legacy",
+      "line": 9,
+      "field_lines": {
+        "command": 11
+      }
+    },
+    {
+      "name": "local-mcp-server",
+      "transport": "stdio",
+      "command": "some-command",
+      "args": [
+        "arg-1",
+        "arg-2"
+      ],
+      "env": {},
+      "headers": {},
+      "auto_trust": false,
+      "auto_approve": [],
+      "disabled": false,
+      "pointer": "/context_servers/local-mcp-server",
+      "line": 4,
+      "field_lines": {
+        "args": 6,
+        "command": 5,
+        "env": 7
+      }
+    },
+    {
+      "name": "remote-mcp-server",
+      "transport": "http",
+      "args": [],
+      "env": {},
+      "url": "https://mcp.x.example/mcp",
+      "headers": {
+        "Authorization": "Bearer <token>"
+      },
+      "auto_trust": false,
+      "auto_approve": [],
+      "disabled": false,
+      "pointer": "/context_servers/remote-mcp-server",
+      "line": 13,
+      "field_lines": {
+        "headers": 15,
+        "url": 14
+      }
+    }
+  ],
+  "issues": []
+}

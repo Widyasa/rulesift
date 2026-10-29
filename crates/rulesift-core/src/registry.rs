@@ -320,6 +320,15 @@ pub static ROWS: &[RegistryRow] = &[
         ),
         ".claude-plugin",
     ),
+    global(row(
+        "claude-desktop-global",
+        T::ClaudeCode,
+        K::McpConfig,
+        &["claude_desktop_config.json"],
+        &[P::McpJson],
+        A::Never,
+        "https://modelcontextprotocol.io/docs/develop/connect-local-servers",
+    )),
     // --- Cursor -------------------------------------------------------------
     with_dialect(
         row(
@@ -1020,6 +1029,11 @@ mod tests {
         ))
         .unwrap();
         assert_eq!(r.tool, T::Cline);
+        let r = match_explicit(Path::new(
+            "/home/u/Library/Application Support/Claude/claude_desktop_config.json",
+        ))
+        .unwrap();
+        assert_eq!(r.id, "claude-desktop-global");
         let r = match_explicit(Path::new("/home/u/.codex/config.toml")).unwrap();
         assert_eq!(r.tool, T::Codex);
     }

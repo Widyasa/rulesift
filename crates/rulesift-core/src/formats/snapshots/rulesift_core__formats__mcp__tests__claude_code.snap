@@ -1,0 +1,52 @@
+---
+source: crates/rulesift-core/src/formats/mcp.rs
+expression: "snap(\"claude-code/.mcp.json\")"
+---
+{
+  "servers": [
+    {
+      "name": "docs",
+      "transport": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@example/docs-mcp@1.2.3"
+      ],
+      "env": {
+        "DOCS_TOKEN": "${DOCS_TOKEN}"
+      },
+      "headers": {},
+      "auto_trust": false,
+      "auto_approve": [],
+      "disabled": false,
+      "pointer": "/mcpServers/docs",
+      "line": 3,
+      "field_lines": {
+        "args": 5,
+        "command": 4,
+        "env": 6
+      }
+    },
+    {
+      "name": "remote",
+      "transport": "http",
+      "args": [],
+      "env": {},
+      "url": "https://mcp.x.example/mcp",
+      "headers": {
+        "Authorization": "Bearer ${API_KEY}"
+      },
+      "auto_trust": false,
+      "auto_approve": [],
+      "disabled": false,
+      "pointer": "/mcpServers/remote",
+      "line": 8,
+      "field_lines": {
+        "headers": 11,
+        "type": 9,
+        "url": 10
+      }
+    }
+  ],
+  "issues": []
+}

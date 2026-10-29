@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "search": {
+      "url": "https://search.x.example/sse"
+    },
+    "local": {
+      "command": "python",
+      "args": ["server.py"],
+      "env": { "MODE": "dev" }
+    }
+  }
+}

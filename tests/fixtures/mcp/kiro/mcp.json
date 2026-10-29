@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "fetcher": {
+      "command": "uvx",
+      "args": ["example-fetch-mcp==1.0.0"],
+      "env": {},
+      "disabled": false,
+      "autoApprove": ["fetch"]
+    }
+  }
+}
