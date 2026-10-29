@@ -138,3 +138,26 @@ fn json_stdout_and_file() {
         serde_json::from_str(&std::fs::read_to_string(&file).unwrap()).unwrap();
     assert_eq!(f, v);
 }
+
+#[test]
+fn sarif_file_has_relative_uris() {
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("out.sarif");
+    let (code, _, _) = run(bin("risky")
+        .args(["scan", ".", "--no-color", "--sarif"])
+        .arg(&file));
+    assert_eq!(code, Some(1));
+    let v: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&file).unwrap()).unwrap();
+    let uris: Vec<&str> = v["runs"][0]["results"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| {
+            r["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]
+                .as_str()
+                .unwrap()
+        })
+        .collect();
+    assert_eq!(uris, vec![".cursor/rules/style.mdc", "AGENTS.md"]);
+}

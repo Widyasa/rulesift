@@ -161,17 +161,26 @@ pub fn exit_code(r: &Report, fail_on: FailOn) -> u8 {
     u8::from(r.files.iter().any(|f| fail_on.trips(f.tier)))
 }
 
+/// What a renderer needs besides the report.
+pub struct RenderCtx<'a> {
+    /// Exit code shown in the footer.
+    pub code: u8,
+    /// Loaded rules (SARIF rule metadata).
+    pub rules: &'a [rulesift_core::rules::loader::Rule],
+}
+
 /// Render `format` for a report.
 pub fn render(
     format: Format,
     r: &Report,
-    code: u8,
+    ctx: &RenderCtx<'_>,
     color: bool,
     quiet: bool,
 ) -> anyhow::Result<String> {
     match format {
-        Format::Table => Ok(crate::table::render(r, code, color, quiet)),
+        Format::Table => Ok(crate::table::render(r, ctx.code, color, quiet)),
         Format::Json => Ok(rulesift_core::report::json::to_json(r)),
+        Format::Sarif => Ok(rulesift_core::report::sarif::to_sarif(r, ctx.rules)),
         other => bail!("--format {other:?} is not available yet"),
     }
 }
@@ -181,18 +190,18 @@ fn write_file(path: &Path, text: &str) -> anyhow::Result<()> {
 }
 
 /// Write `--json/--sarif/--markdown` files and print stdout.
-pub fn emit(g: &GlobalArgs, o: &OutputArgs, r: &Report, code: u8) -> anyhow::Result<()> {
+pub fn emit(g: &GlobalArgs, o: &OutputArgs, r: &Report, ctx: &RenderCtx<'_>) -> anyhow::Result<()> {
     for (path, fmt) in [
         (&o.json, Format::Json),
         (&o.sarif, Format::Sarif),
         (&o.markdown, Format::Markdown),
     ] {
         if let Some(p) = path {
-            write_file(p, &render(fmt, r, code, false, false)?)?;
+            write_file(p, &render(fmt, r, ctx, false, false)?)?;
         }
     }
     let color = o.format == Format::Table && common::use_color(g);
-    print!("{}", render(o.format, r, code, color, g.quiet)?);
+    print!("{}", render(o.format, r, ctx, color, g.quiet)?);
     Ok(())
 }
 
@@ -224,7 +233,15 @@ pub fn run(g: &GlobalArgs, a: &ScanArgs) -> anyhow::Result<ExitCode> {
     report.generated_at = Some(now_rfc3339());
     apply_min_severity(&mut report, p.min_severity);
     let code = exit_code(&report, p.fail_on);
-    emit(g, &a.out, &report, code)?;
+    emit(
+        g,
+        &a.out,
+        &report,
+        &RenderCtx {
+            code,
+            rules: &p.rules.rules,
+        },
+    )?;
     Ok(ExitCode::from(code))
 }
 
