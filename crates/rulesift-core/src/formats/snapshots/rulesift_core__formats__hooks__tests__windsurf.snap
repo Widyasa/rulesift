@@ -1,0 +1,30 @@
+---
+source: crates/rulesift-core/src/formats/hooks.rs
+expression: "snap(Tool::Windsurf, \"windsurf/hooks.json\", true)"
+---
+{
+  "hooks": [
+    {
+      "tool": "windsurf",
+      "event": "pre_read_code",
+      "command": "python3 scripts/check.py",
+      "pointer": "/hooks/pre_read_code/0/command",
+      "line": 5
+    },
+    {
+      "tool": "windsurf",
+      "event": "pre_read_code",
+      "command": "python3 scripts\\check.py",
+      "pointer": "/hooks/pre_read_code/0/powershell",
+      "line": 6
+    },
+    {
+      "tool": "windsurf",
+      "event": "post_write_code",
+      "command": "echo written",
+      "pointer": "/hooks/post_write_code/0/command",
+      "line": 10
+    }
+  ],
+  "issues": []
+}

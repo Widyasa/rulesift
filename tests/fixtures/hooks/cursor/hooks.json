@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "hooks": {
+    "afterFileEdit": [{ "command": "./hooks/format.sh" }],
+    "beforeShellExecution": [
+      { "command": "./hooks/audit.sh", "matcher": "git" },
+      { "type": "prompt", "prompt": "Is this command safe?" }
+    ]
+  }
+}

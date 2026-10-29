@@ -1,6 +1,11 @@
 {
-  "name": "Lint on save",
-  "version": "1",
-  "when": { "type": "fileEdited", "patterns": ["**/*.ts"] },
-  "then": { "type": "runCommand", "command": "echo lint" }
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Lint on save",
+      "trigger": "PostFileSave",
+      "matcher": "\\.(ts|tsx)$",
+      "action": { "type": "command", "command": "echo lint" }
+    }
+  ]
 }

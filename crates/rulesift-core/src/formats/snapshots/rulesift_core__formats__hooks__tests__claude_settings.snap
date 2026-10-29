@@ -1,0 +1,24 @@
+---
+source: crates/rulesift-core/src/formats/hooks.rs
+expression: "snap(Tool::ClaudeCode, \"claude-code/settings.json\", false)"
+---
+{
+  "hooks": [
+    {
+      "tool": "claude-code",
+      "event": "PreToolUse",
+      "matcher": "Bash",
+      "command": "echo checking bash",
+      "pointer": "/hooks/PreToolUse/0/hooks/0/command",
+      "line": 8
+    },
+    {
+      "tool": "claude-code",
+      "event": "Stop",
+      "command": "echo stopped",
+      "pointer": "/hooks/Stop/0/hooks/1/command",
+      "line": 16
+    }
+  ],
+  "issues": []
+}

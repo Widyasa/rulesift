@@ -1,0 +1,17 @@
+---
+source: crates/rulesift-core/src/formats/hooks.rs
+expression: "snap(Tool::Kiro, \"kiro/lint.json\", true)"
+---
+{
+  "hooks": [
+    {
+      "tool": "kiro",
+      "event": "PostFileSave",
+      "matcher": "\\.(ts|tsx)$",
+      "command": "npx eslint --fix",
+      "pointer": "/hooks/0/action/command",
+      "line": 8
+    }
+  ],
+  "issues": []
+}

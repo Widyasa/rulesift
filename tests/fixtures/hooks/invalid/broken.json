@@ -1,0 +1,7 @@
+{
+  "hooks": {
+    "afterFileEdit": [
+      { "command": "x" },,
+    ]
+  }
+}

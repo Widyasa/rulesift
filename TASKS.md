@@ -85,7 +85,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: fixtures normalize identically to an equivalent JSON fixture (shared snapshot); invalid files yield RS-FMT-007.
   - Dep: W2-T2
 
-- [ ] **W2-T4 Hooks normalizer**
+- [x] **W2-T4 Hooks normalizer**
   - Description: one `Hook { tool, event, matcher, command, position }` list from Claude Code (`.claude/settings*.json` `hooks`, plugin `hooks/hooks.json`), Cursor (`.cursor/hooks.json`), Windsurf/Devin (`.windsurf/hooks.json`, `.devin/hooks.json`), and Kiro (`.kiro/hooks/*.json`, `action.type = "command"`). Per-tool mapping is data (JSON pointer patterns), not code branches where possible.
   - Files: `core/formats/hooks.rs`, fixtures
   - Done when: snapshot of normalized hooks for each tool's fixture; invalid files yield RS-FMT-007.
