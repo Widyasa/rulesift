@@ -10,8 +10,8 @@ Applies to: skill, instructions, command, agent, mcp-config, hooks, settings, pl
 Source:     builtin:exec.yaml
 Matcher:
   any of: [scope: frontmatter, text, heading, code_block, inline_code, html_comment, json_string, decoded]
-    regex `(?i)\b(?:curl|wget|fetch)\b[^\n|;]*\|\s*(?:sudo\s+(?:-\S+\s+)*)?(?:env\s+)?(?:ba|z|da|k|fi)?sh\b`
-    regex `(?i)\b(?:curl|wget)\b[^\n|;]*\|\s*(?:sudo\s+)?(?:python[23]?|perl|ruby|node)\b`
+    regex `(?i)\b(?:curl|wget|fetch)\s+[^\n|;]*[^\s|;][^\n|;]*\|\s*(?:sudo\s+(?:-\S+\s+)*)?(?:env\s+)?(?:ba|z|da|k|fi)?sh\b`
+    regex `(?i)\b(?:curl|wget)\s+[^\n|;]*[^\s|;][^\n|;]*\|\s*(?:sudo\s+)?(?:python[23]?|perl|ruby|node)\b`
     regex `(?i)\b(?:ba|z)?sh\s+(?:-c\s+)?["']?(?:\$\(|<\()\s*(?:curl|wget)\b`
     regex `(?i)\b(?:iwr|irm|invoke-webrequest|invoke-restmethod|curl|wget)\b[^\n|]*\|\s*(?:iex|invoke-expression)\b`
     regex `(?i)\b(?:iex|invoke-expression)\b\s*\(*\s*(?:\(\s*)?(?:new-object\s+(?:system\.)?net\.webclient\s*\)?\s*\.\s*downloadstring|iwr|irm|invoke-webrequest|invoke-restmethod)\b`
@@ -25,6 +25,7 @@ Matches:
 
 Does not match:
   - "curl -fsSL https://x.example/i.sh -o i.sh"
+  - "Never pipe curl | sh in docs."
 
 References:
   - https://snyk.io/blog/toxicskills-malicious-ai-agent-skills-clawhub/

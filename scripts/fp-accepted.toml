@@ -1,0 +1,29 @@
+# Config for scripts/fp-check.sh. Built-in defaults plus the findings we
+# reviewed and accept as true positives in the pinned corpus (see
+# docs/false-positives.md). These are suppressions for the corpus only; the
+# rules still flag the same lines in your repo.
+
+[[suppress]]
+rule = "RS-EXEC-001"
+path = "skills/.curated/sentry/SKILL.md"
+reason = "openai/skills: vendor CLI installer (cli.sentry.dev) piped to bash; true positive, accepted for the FP corpus"
+
+[[suppress]]
+rule = "RS-EXEC-001"
+path = "skills/.curated/render-deploy/SKILL.md"
+reason = "openai/skills: Render CLI installer from raw.githubusercontent.com piped to sh; true positive, accepted"
+
+[[suppress]]
+rule = "RS-EXEC-001"
+path = "skills/.curated/cloudflare-deploy/references/sandbox/patterns.md"
+reason = "openai/skills: code-server installer run inside a Cloudflare sandbox example; true positive, accepted"
+
+[[suppress]]
+rule = "RS-EXEC-001"
+path = ".github/skills/azure-pipelines/SKILL.md"
+reason = "microsoft/vscode: Azure CLI installer (aka.ms) piped to sudo bash; true positive, accepted"
+
+[[suppress]]
+rule = "RS-EXEC-001"
+path = ".gemini/skills/agent-tui/SKILL.md"
+reason = "gemini-cli: third-party agent-tui installer piped to sh; true positive, accepted"

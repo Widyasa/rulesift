@@ -28,6 +28,7 @@ Not flagged:
 printenv HOME
 set -euo pipefail
 env | grep NODE
+set max_tokens >= 64000
 ```
 
 ## How to fix

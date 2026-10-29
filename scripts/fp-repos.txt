@@ -1,0 +1,10 @@
+# False-positive corpus (PRD §14). One repo per line:
+#   owner/repo  commit-sha  [sparse-checkout patterns (no-cone)...]
+# Without patterns the whole tree is checked out. Bump SHAs deliberately and
+# re-record docs/false-positives.md.
+anthropics/skills            ca45fc496a3436251f191354091d557da31c15b5
+openai/skills                49f948faa9258a0c61caceaf225e179651397431
+PatrickJS/awesome-cursorrules b044f956f021b6e8877f16781bcfc466a6a120e9 =rules:.cursor/rules
+microsoft/vscode             8c26947d4b26896837a709218f15e68a2bf5f967 /.github/ /.vscode/ /*.md AGENTS.md CLAUDE.md
+google-gemini/gemini-cli     718e97c2448e0384cb582409cf4e479437bf50fe /.gemini/ /.github/ /*.md GEMINI.md AGENTS.md
+kirodotdev/spirit-of-kiro    ff0c8c22cb4026f83df5aa9155e9b7f410809f30 /.kiro/ /*.md AGENTS.md
