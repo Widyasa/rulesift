@@ -1,0 +1,26 @@
+[workspace]
+members = ["cargo:."]
+
+# cargo-dist config (PRD §13). Releases are cut only when Widya pushes a
+# `v*` tag; nothing here publishes on its own.
+[dist]
+cargo-dist-version = "0.33.1"
+ci = "github"
+installers = ["shell", "powershell", "npm", "homebrew"]
+targets = [
+    "aarch64-apple-darwin",
+    "aarch64-unknown-linux-gnu",
+    "x86_64-apple-darwin",
+    "x86_64-unknown-linux-gnu",
+    "x86_64-pc-windows-msvc",
+]
+# Homebrew: `brew install widyasa/tap/rulesift`
+tap = "Widyasa/homebrew-tap"
+formula = "rulesift"
+# npm: `npx rulesift` (unscoped package name)
+npm-package = "rulesift"
+publish-jobs = ["homebrew", "npm"]
+install-path = "CARGO_HOME"
+install-updater = false
+# On pull requests only run `dist plan` (no builds, nothing uploaded).
+pr-run-mode = "plan"
