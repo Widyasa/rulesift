@@ -241,7 +241,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: the self-test workflow runs the action from source on this repo's PRs and uploads SARIF; no secrets other than the automatic `GITHUB_TOKEN`.
   - Dep: W5-T3
 
-- [ ] **W5-T5 `rulesift init` and pre-commit hook**
+- [x] **W5-T5 `rulesift init` and pre-commit hook**
   - Description: `init` (config), `--ci github`, `--pre-commit` per §6.6; `.pre-commit-hooks.yaml` per §12.2.
   - Files: `cli/init.rs`, `.pre-commit-hooks.yaml`
   - Done when: snapshots of generated files; `--force` behavior tested; hook `files` regex is generated from the tool registry and tested against every MVP path.

@@ -1043,3 +1043,152 @@ pub(crate) mod tests {
         insta::assert_snapshot!(render_table());
     }
 }
+
+/// Translate one registry glob into an anchored regular expression
+/// (Python `re` / Rust `regex` compatible subset): `**/` → any directories,
+/// `**` → anything, `*` → within one path segment, `?` → one character,
+/// `{a,b}` → alternatives, `[...]` kept.
+pub fn glob_to_regex(glob: &str) -> String {
+    let mut out = String::new();
+    let chars: Vec<char> = glob.chars().collect();
+    let mut i = 0;
+    let mut in_brace = false;
+    while i < chars.len() {
+        let c = chars[i];
+        match c {
+            '*' if chars.get(i + 1) == Some(&'*') => {
+                if chars.get(i + 2) == Some(&'/') {
+                    out.push_str("(?:.*/)?");
+                    i += 3;
+                } else {
+                    out.push_str(".*");
+                    i += 2;
+                }
+                continue;
+            }
+            '*' => out.push_str("[^/]*"),
+            '?' => out.push_str("[^/]"),
+            '{' => {
+                in_brace = true;
+                out.push_str("(?:");
+            }
+            '}' if in_brace => {
+                in_brace = false;
+                out.push(')');
+            }
+            ',' if in_brace => out.push('|'),
+            '[' => {
+                let end = chars[i..].iter().position(|&x| x == ']').map(|p| p + i);
+                if let Some(end) = end {
+                    let body: String = chars[i + 1..end].iter().collect();
+                    let body = body
+                        .strip_prefix('!')
+                        .map(|b| format!("^{b}"))
+                        .unwrap_or(body);
+                    out.push('[');
+                    out.push_str(&body);
+                    out.push(']');
+                    i = end + 1;
+                    continue;
+                }
+                out.push_str("\\[");
+            }
+            '.' | '+' | '(' | ')' | '|' | '^' | '$' | '\\' | ']' | '}' => {
+                out.push('\\');
+                out.push(c);
+            }
+            _ => out.push(c),
+        }
+        i += 1;
+    }
+    out
+}
+
+/// The pre-commit `files` regex matching every project-level MVP path, plus
+/// files bundled inside `skills/<name>/` directories.
+pub fn precommit_files_regex() -> String {
+    let mut parts: Vec<String> = ROWS
+        .iter()
+        .filter(|r| r.release == Release::Mvp && !r.global_only)
+        .flat_map(|r| r.globs.iter().map(|g| glob_to_regex(g)))
+        .collect();
+    // files bundled with a skill (scripts, references) under a `skills/` dir
+    parts.push("(?:.*/)?skills/[^/]+/.+".to_string());
+    parts.sort();
+    parts.dedup();
+    format!("^(?:{})$", parts.join("|"))
+}
+
+#[cfg(test)]
+mod precommit_tests {
+    use super::*;
+
+    #[test]
+    fn glob_translation() {
+        let re = |g: &str| regex::Regex::new(&format!("^{}$", glob_to_regex(g))).unwrap();
+        assert!(re("**/SKILL.md").is_match("SKILL.md"));
+        assert!(re("**/SKILL.md").is_match("a/b/SKILL.md"));
+        assert!(!re("**/SKILL.md").is_match("xSKILL.md"));
+        assert!(re(".cursor/rules/**/*.mdc").is_match(".cursor/rules/a.mdc"));
+        assert!(re(".cursor/rules/**/*.mdc").is_match(".cursor/rules/x/y/a.mdc"));
+        assert!(!re(".cursor/rules/*.mdc").is_match(".cursor/rules/x/a.mdc"));
+        assert!(!re(".cursorrules").is_match("xcursorrules"));
+        assert!(re("a.{json,yaml}").is_match("a.yaml"));
+        assert!(re(".roo/rules-[a-z]*/x").is_match(".roo/rules-code/x"));
+    }
+
+    #[test]
+    fn regex_agrees_with_globs_on_all_tools_fixture() {
+        let re = regex::Regex::new(&precommit_files_regex()).unwrap();
+        let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tests/fixtures/repos/all-tools");
+        let d = crate::discovery::discover(&[root], &Default::default()).unwrap();
+        assert!(d.files.len() > 40);
+        for f in &d.files {
+            // files inside skill dirs are found through their SKILL.md, not a glob
+            if f.row.id == "agent-skills-file" && !f.match_path.contains("skills/") {
+                continue;
+            }
+            assert!(
+                re.is_match(&f.match_path),
+                "{} ({}) not matched",
+                f.match_path,
+                f.row.id
+            );
+        }
+        for neg in ["README.md", "src/main.rs", "docs/guide.md", "Cargo.toml"] {
+            assert!(!re.is_match(neg), "{neg} matched");
+        }
+    }
+
+    #[test]
+    fn every_mvp_glob_is_covered() {
+        // each MVP glob's regex matches a path built from the glob itself
+        let re = regex::Regex::new(&precommit_files_regex()).unwrap();
+        for r in ROWS
+            .iter()
+            .filter(|r| r.release == Release::Mvp && !r.global_only)
+        {
+            for g in r.globs {
+                let sample = g
+                    .replace("**/", "")
+                    .replace("**", "x")
+                    .replace(['*', '?'], "x");
+                let sample = if let (Some(a), Some(b)) = (sample.find('{'), sample.find('}')) {
+                    let first = sample[a + 1..b].split(',').next().unwrap_or("").to_string();
+                    format!("{}{}{}", &sample[..a], first, &sample[b + 1..])
+                } else {
+                    sample
+                };
+                if sample.contains('[') {
+                    continue;
+                }
+                assert!(re.is_match(&sample), "{} glob {g} sample {sample}", r.id);
+                assert!(
+                    match_path(&sample, Origin::Walked).is_some() || r.requires_sibling.is_some(),
+                    "{sample}"
+                );
+            }
+        }
+    }
+}
