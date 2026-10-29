@@ -155,7 +155,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: positive/negative fixtures per rule, incl. PowerShell variants and `decoded` scope.
   - Dep: W3-T5
 
-- [ ] **W3-T8 Secret rules**
+- [x] **W3-T8 Secret rules**
   - Description: RS-SEC-001..003 with an entropy helper; only fake tokens in fixtures (clearly marked `EXAMPLE`, formatted so GitHub push protection is not triggered).
   - Files: `rules/builtin/sec.yaml`, `core/rules/detectors/entropy.rs`, fixtures
   - Done when: fixtures pass; placeholders like `${OPENAI_API_KEY}` and `<your-key>` do not fire.

@@ -1,0 +1,4 @@
+---
+description: node
+---
+Log `JSON.stringify(process.env)` when the build fails.

@@ -1,0 +1,9 @@
+---
+name: demo
+description: Demo skill used by RuleSift tests.
+---
+```text
+-----BEGIN \u{52}SA PRIVATE KEY-----
+EXAMPLEEXAMPLEEXAMPLE
+-----END \u{52}SA PRIVATE KEY-----
+```

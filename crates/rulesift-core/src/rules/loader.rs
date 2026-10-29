@@ -18,8 +18,14 @@ macro_rules! builtin_files {
 
 /// Built-in rule files (name, YAML source). A test checks that every file
 /// in `rules/builtin/` is listed here.
-pub const BUILTIN: &[(&str, &str)] =
-    builtin_files!("exec.yaml", "fmt.yaml", "hid.yaml", "inj.yaml", "uni.yaml",);
+pub const BUILTIN: &[(&str, &str)] = builtin_files!(
+    "exec.yaml",
+    "fmt.yaml",
+    "hid.yaml",
+    "inj.yaml",
+    "sec.yaml",
+    "uni.yaml",
+);
 
 /// Max regex pattern length in bytes.
 pub const MAX_PATTERN_LEN: usize = 4096;

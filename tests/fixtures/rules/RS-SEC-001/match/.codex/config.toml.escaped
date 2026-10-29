@@ -1,0 +1,5 @@
+[mcp_servers.aws]
+command = "aws-mcp"
+
+[mcp_servers.aws.env]
+AWS_ACCESS_KEY_ID = "AKIA\u{49}OSFODNN7EXAMPLE"
