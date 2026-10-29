@@ -20,13 +20,19 @@ path = "src/main.rs"
 anyhow = "1.0.104"
 clap = { version = "4.6.7", features = ["derive"] }
 owo-colors = "4.4.0"
+rmcp = { version = "3.8.0", features = ["server", "transport-io", "macros"] }
 rulesift-core = { path = "../rulesift-core", version = "0.0.1" }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+tokio = { version = "1.54.1", features = ["rt", "macros", "io-std"] }
 
 [dev-dependencies]
 assert_cmd = "2.2.2"
 insta = "1.49.0"
 predicates = "3.1.4"
 regex = "1.13.1"
+rmcp = { version = "3.8.0", features = ["client", "server", "transport-io", "macros"] }
 serde-saphyr = "2.0.0"
 serde_json = "1.0.154"
 tempfile = "3.27.0"
+tokio = { version = "1.54.1", features = ["rt", "macros", "io-std", "io-util"] }
