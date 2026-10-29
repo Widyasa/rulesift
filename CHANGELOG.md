@@ -110,6 +110,9 @@ Release-gate QA findings on 73c04df (#132–#138):
 - A directory symlink pointing outside the scan root at `.agents` or at a
   nested tool directory (`pkg/.claude`, `a/b/.cursor`) now fails closed with
   RS-FMT-008, since skills below them are discovered (#134).
+- A file or directory symlink inside a skill directory that points outside
+  the scan root (`scripts/setup.sh -> /outside/setup.sh`) fails closed with
+  RS-FMT-008 instead of a warning (#135).
 
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0

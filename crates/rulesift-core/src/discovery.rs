@@ -937,6 +937,19 @@ fn walk_dir(
             let m = effective(&rel).0;
             (registry::match_path(&m, Origin::Walked), m)
         };
+        // Inside a skill directory any file (a script the skill runs) or
+        // directory may be loaded by the agent (#135).
+        let skill_dir = skill_dirs
+            .iter()
+            .filter(|d| d.is_empty() || rel.starts_with(&format!("{d}/")))
+            .max_by_key(|d| d.len());
+        let row = match row {
+            Some(r) if r.kind == FileKind::Skill => Some(r),
+            _ if skill_dir.is_some() => Some(&SKILL_FILE_ROW),
+            r => r,
+        };
+        let skill_disp =
+            skill_dir.map(|d| display_join(&base, d).trim_end_matches('/').to_string());
         let row = row.filter(|r| {
             r.release == Release::Mvp
                 && !excluded(&rel)
@@ -968,7 +981,7 @@ fn walk_dir(
             stable_path,
             fs_path,
             row,
-            skill_dir: None,
+            skill_dir: skill_disp,
             text: String::new(),
             lossy: false,
             unscannable: Some(what.into()),
