@@ -64,6 +64,17 @@ pub struct McpServer {
     pub field_lines: BTreeMap<String, usize>,
 }
 
+/// A scalar setting found next to MCP servers (e.g. Codex `approval_policy`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Setting {
+    /// Key.
+    pub key: String,
+    /// Value as text.
+    pub value: String,
+    /// 1-based line.
+    pub line: usize,
+}
+
 /// Result of normalizing one MCP config file.
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 pub struct McpConfig {
@@ -71,10 +82,13 @@ pub struct McpConfig {
     pub servers: Vec<McpServer>,
     /// RS-FMT-007 issues.
     pub issues: Vec<FormatIssue>,
+    /// Settings found in the same file (Codex only).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub settings: Vec<Setting>,
 }
 
 /// Keys that hold the server map, in lookup order.
-pub const SERVER_KEYS: &[&str] = &["mcpServers", "servers", "context_servers"];
+pub const SERVER_KEYS: &[&str] = &["mcpServers", "servers", "context_servers", "mcp_servers"];
 
 fn string_of(v: &Value) -> Option<String> {
     match v {
@@ -152,6 +166,7 @@ pub fn server_from_entry(
     let headers = string_map(
         entry
             .get("headers")
+            .or_else(|| entry.get("http_headers"))
             .or_else(|| entry.get("requestInit").and_then(|r| r.get("headers"))),
     );
     let auto_trust = entry.get("trust").and_then(Value::as_bool).unwrap_or(false);
@@ -288,8 +303,8 @@ pub fn normalize_json(text: &str) -> McpConfig {
     match json::parse(text) {
         Ok(doc) => from_doc(&doc),
         Err(e) => McpConfig {
-            servers: Vec::new(),
             issues: vec![FormatIssue::new(e.line, e.to_string())],
+            ..Default::default()
         },
     }
 }

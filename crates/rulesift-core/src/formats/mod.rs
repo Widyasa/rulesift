@@ -2,6 +2,8 @@
 //! settings, tool grants). Rules only ever see the normalized models.
 
 pub mod mcp;
+pub mod mcp_toml;
+pub mod mcp_yaml;
 
 use serde::{Deserialize, Serialize};
 

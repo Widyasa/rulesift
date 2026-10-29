@@ -79,7 +79,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: one fixture per JSON source normalizes to the expected `McpServer` list (snapshot) with positions; invalid fixture yields RS-FMT-007.
   - Dep: W2-T1, W1-T6
 
-- [ ] **W2-T3 MCP normalizer: TOML (Codex) and YAML (Continue)**
+- [x] **W2-T3 MCP normalizer: TOML (Codex) and YAML (Continue)**
   - Description: parse `.codex/config.toml` `[mcp_servers.*]` (plus `approval_policy`, `sandbox_mode` as settings) and `.continue/mcpServers/*.yaml` block files (`name`, `version`, `schema`, `mcpServers` list) into the same `McpServer` model, with line positions.
   - Files: `core/formats/mcp_toml.rs`, `core/formats/mcp_yaml.rs`, fixtures
   - Done when: fixtures normalize identically to an equivalent JSON fixture (shared snapshot); invalid files yield RS-FMT-007.
