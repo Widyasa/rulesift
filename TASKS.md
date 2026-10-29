@@ -15,7 +15,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
 
 ## Week 1: Foundation (workspace, model, config, tool registry, discovery, Markdown)
 
-- [ ] **W1-T1 Initialize workspace and licenses**
+- [x] **W1-T1 Initialize workspace and licenses**
   - Description: Cargo workspace with `rulesift-core` (lib) and `rulesift` (bin), edition 2021, `license = "MIT OR Apache-2.0"`, `rust-version` set, `repository = "https://github.com/Widyasa/rulesift"`. Add `LICENSE-MIT`, `LICENSE-APACHE`, `.gitignore`, placeholder `README.md`, and copy `AGENTS.md`, `PRD.md`, `TASKS.md` from the handoff package; add `CLAUDE.md` containing `@AGENTS.md`.
   - Files: `Cargo.toml`, `crates/*/Cargo.toml`, `crates/*/src/{lib,main}.rs`, `LICENSE-*`, `AGENTS.md`, `CLAUDE.md`
   - Done when: `cargo build --workspace` succeeds; `cargo run -p rulesift -- --version` prints the version; `--help` is English.
