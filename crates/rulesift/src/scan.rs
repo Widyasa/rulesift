@@ -181,7 +181,7 @@ pub fn render(
         Format::Table => Ok(crate::table::render(r, ctx.code, color, quiet)),
         Format::Json => Ok(rulesift_core::report::json::to_json(r)),
         Format::Sarif => Ok(rulesift_core::report::sarif::to_sarif(r, ctx.rules)),
-        other => bail!("--format {other:?} is not available yet"),
+        Format::Markdown => Ok(rulesift_core::report::markdown::to_markdown(r)),
     }
 }
 

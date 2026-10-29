@@ -207,7 +207,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: output validates against the schema; levels and `security-severity` mapping tested; paths are relative with `%SRCROOT%`.
   - Dep: W4-T5
 
-- [ ] **W4-T8 Markdown (PR comment)**
+- [x] **W4-T8 Markdown (PR comment)**
   - Description: §10.3 incl. marker, truncation at 60,000 chars, `<U+XXXX>` rendering.
   - Files: `core/report/markdown.rs`
   - Done when: snapshots for clean repo, blocked repo, and an oversize report.

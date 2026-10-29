@@ -161,3 +161,24 @@ fn sarif_file_has_relative_uris() {
         .collect();
     assert_eq!(uris, vec![".cursor/rules/style.mdc", "AGENTS.md"]);
 }
+
+#[test]
+fn markdown_stdout_and_all_files_in_one_scan() {
+    let dir = tempfile::tempdir().unwrap();
+    let (j, sa, m) = (
+        dir.path().join("r.json"),
+        dir.path().join("r.sarif"),
+        dir.path().join("r.md"),
+    );
+    let (code, out, _) = run(bin("risky")
+        .args(["scan", ".", "--format", "markdown", "--json"])
+        .arg(&j)
+        .arg("--sarif")
+        .arg(&sa)
+        .arg("--markdown")
+        .arg(&m));
+    assert_eq!(code, Some(1));
+    assert!(out.starts_with("<!-- rulesift:pr-comment -->"));
+    assert_eq!(std::fs::read_to_string(&m).unwrap(), out);
+    assert!(j.exists() && sa.exists());
+}

@@ -1,6 +1,7 @@
 //! Report serializers (PRD §10): JSON, SARIF, Markdown.
 
 pub mod json;
+pub mod markdown;
 pub mod sarif;
 
 use crate::model::Report;
