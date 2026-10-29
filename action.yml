@@ -1,0 +1,168 @@
+name: RuleSift
+description: Offline linter and PR gate for AI agent configuration files (skills, rules, MCP configs, hooks, settings).
+author: Widyasa
+branding:
+  icon: shield
+  color: purple
+
+inputs:
+  version:
+    description: RuleSift version to install (e.g. `0.1.0`). Default is the action's own release tag.
+    required: false
+    default: ""
+  install:
+    description: "`release` installs the pinned release binary; `source` builds this action's checkout with `cargo install --path` (for self-testing before a release exists)."
+    required: false
+    default: release
+  path:
+    description: Path to scan.
+    required: false
+    default: "."
+  mode:
+    description: "`scan` or `diff`. Default is `diff` on pull_request events, otherwise `scan`."
+    required: false
+    default: ""
+  base:
+    description: Base revision for `diff` mode. Default is the pull request base SHA.
+    required: false
+    default: ""
+  fail-on:
+    description: Fail when any file reaches this tier (`block`, `review`, `info`, `never`).
+    required: false
+    default: block
+  sarif:
+    description: "Upload SARIF to GitHub code scanning (needs `security-events: write`)."
+    required: false
+    default: "true"
+  comment:
+    description: "Create or update one PR comment with the Markdown report (needs `pull-requests: write`)."
+    required: false
+    default: "true"
+  args:
+    description: Extra flags passed to `rulesift` (space separated).
+    required: false
+    default: ""
+
+outputs:
+  exit-code:
+    description: RuleSift's exit code (0 pass, 1 policy failure, 2 error).
+    value: ${{ steps.run.outputs.exit-code }}
+  sarif-file:
+    description: Path of the SARIF file.
+    value: ${{ steps.run.outputs.sarif-file }}
+  markdown-file:
+    description: Path of the Markdown report.
+    value: ${{ steps.run.outputs.markdown-file }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install RuleSift (release)
+      if: inputs.install == 'release'
+      shell: bash
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+        ACTION_REF: ${{ github.action_ref }}
+      run: |
+        set -euo pipefail
+        version="${INPUT_VERSION:-${ACTION_REF:-}}"
+        version="${version#v}"
+        if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+          echo "::error::Cannot determine a RuleSift release version from '${INPUT_VERSION:-$ACTION_REF}'. Pin the action to a release tag (Widyasa/rulesift@v0.1.0), set 'version', or use 'install: source'."
+          exit 2
+        fi
+        dest="$RUNNER_TEMP/rulesift-bin"
+        mkdir -p "$dest"
+        base="https://github.com/Widyasa/rulesift/releases/download/v${version}"
+        if [ "$RUNNER_OS" = "Windows" ]; then
+          RULESIFT_UNMANAGED_INSTALL="$dest" powershell -NoProfile -ExecutionPolicy Bypass -Command "irm '${base}/rulesift-installer.ps1' | iex"
+        else
+          curl --proto '=https' --tlsv1.2 -LsSf "${base}/rulesift-installer.sh" | RULESIFT_UNMANAGED_INSTALL="$dest" sh
+        fi
+        echo "$dest" >> "$GITHUB_PATH"
+
+    - name: Install RuleSift (source)
+      if: inputs.install == 'source'
+      shell: bash
+      run: |
+        set -euo pipefail
+        cargo install --locked --path "$GITHUB_ACTION_PATH/crates/rulesift" --root "$RUNNER_TEMP/rulesift-src"
+        echo "$RUNNER_TEMP/rulesift-src/bin" >> "$GITHUB_PATH"
+
+    - name: Run RuleSift
+      id: run
+      shell: bash
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_MODE: ${{ inputs.mode }}
+        INPUT_BASE: ${{ inputs.base }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+        INPUT_ARGS: ${{ inputs.args }}
+        EVENT_NAME: ${{ github.event_name }}
+        PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      run: |
+        set -uo pipefail
+        mode="$INPUT_MODE"
+        if [ -z "$mode" ]; then
+          if [ "$EVENT_NAME" = "pull_request" ] || [ "$EVENT_NAME" = "pull_request_target" ]; then mode=diff; else mode=scan; fi
+        fi
+        case "$mode" in scan|diff) ;; *) echo "::error::mode must be scan or diff, got '$mode'"; exit 2 ;; esac
+        out="$RUNNER_TEMP/rulesift-out"
+        mkdir -p "$out"
+        sarif="$out/rulesift.sarif"
+        md="$out/rulesift.md"
+        read -r -a extra <<< "$INPUT_ARGS"
+        cmd=(rulesift "$mode")
+        if [ "$mode" = diff ]; then
+          base="${INPUT_BASE:-$PR_BASE_SHA}"
+          if [ -z "$base" ]; then echo "::error::diff mode needs 'base' outside pull_request events"; exit 2; fi
+          cmd+=(--base "$base")
+        fi
+        cmd+=("$INPUT_PATH" --fail-on "$INPUT_FAIL_ON" --sarif "$sarif" --markdown "$md" "${extra[@]}")
+        echo "+ ${cmd[*]}"
+        "${cmd[@]}"
+        code=$?
+        echo "exit-code=$code" >> "$GITHUB_OUTPUT"
+        echo "sarif-file=$sarif" >> "$GITHUB_OUTPUT"
+        echo "markdown-file=$md" >> "$GITHUB_OUTPUT"
+        if [ -f "$md" ]; then cat "$md" >> "$GITHUB_STEP_SUMMARY"; fi
+        exit 0
+
+    - name: Upload SARIF
+      if: always() && inputs.sarif == 'true' && hashFiles(format('{0}/rulesift-out/rulesift.sarif', runner.temp)) != ''
+      uses: github/codeql-action/upload-sarif@v4
+      with:
+        sarif_file: ${{ steps.run.outputs.sarif-file }}
+        category: rulesift
+
+    - name: Upsert PR comment
+      if: always() && inputs.comment == 'true' && github.event_name == 'pull_request' && steps.run.outputs.markdown-file != ''
+      uses: actions/github-script@v9
+      env:
+        MARKDOWN_FILE: ${{ steps.run.outputs.markdown-file }}
+      with:
+        script: |
+          const fs = require('fs');
+          const file = process.env.MARKDOWN_FILE;
+          if (!fs.existsSync(file)) { core.info('no markdown report'); return; }
+          const body = fs.readFileSync(file, 'utf8');
+          const marker = '<!-- rulesift:pr-comment -->';
+          const { owner, repo } = context.repo;
+          const issue_number = context.issue.number;
+          const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number, per_page: 100 });
+          const mine = comments.find(c => c.body && c.body.startsWith(marker));
+          if (mine) {
+            await github.rest.issues.updateComment({ owner, repo, comment_id: mine.id, body });
+          } else {
+            await github.rest.issues.createComment({ owner, repo, issue_number, body });
+          }
+
+    - name: Propagate exit code
+      if: always()
+      shell: bash
+      env:
+        CODE: ${{ steps.run.outputs.exit-code }}
+      run: |
+        code="${CODE:-2}"
+        if [ "$code" != "0" ]; then echo "::error::RuleSift exited with code $code"; fi
+        exit "$code"

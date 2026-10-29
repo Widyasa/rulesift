@@ -1,0 +1,7 @@
+# RuleSift's own config (dogfooding). Fixtures contain deliberately unsafe
+# agent files for tests, so they are excluded from scans of this repo.
+[scan]
+exclude = ["target/**", "tests/fixtures/**"]
+
+[policy]
+fail_on = "block"

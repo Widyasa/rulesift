@@ -2000,6 +2000,7 @@ dependencies = [
  "owo-colors",
  "predicates",
  "rulesift-core",
+ "serde-saphyr",
  "serde_json",
  "tempfile",
 ]
