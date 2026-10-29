@@ -1,0 +1,48 @@
+---
+source: crates/rulesift-core/src/formats/mcp_yaml.rs
+expression: "serde_json::to_string_pretty(&c).unwrap()"
+---
+{
+  "servers": [
+    {
+      "name": "remote-sse",
+      "transport": "sse",
+      "args": [],
+      "env": {},
+      "url": "https://sse.x.example/events",
+      "headers": {},
+      "auto_trust": false,
+      "auto_approve": [],
+      "disabled": false,
+      "pointer": "/mcpServers/1",
+      "line": 9,
+      "field_lines": {
+        "type": 9,
+        "url": 9
+      }
+    },
+    {
+      "name": "sqlite",
+      "transport": "stdio",
+      "command": "uvx",
+      "args": [
+        "example-sqlite-mcp==0.3.0",
+        "--db-path",
+        "/tmp/example.db"
+      ],
+      "env": {},
+      "headers": {},
+      "auto_trust": false,
+      "auto_approve": [],
+      "disabled": false,
+      "pointer": "/mcpServers/0",
+      "line": 5,
+      "field_lines": {
+        "args": 8,
+        "command": 7,
+        "type": 6
+      }
+    }
+  ],
+  "issues": []
+}

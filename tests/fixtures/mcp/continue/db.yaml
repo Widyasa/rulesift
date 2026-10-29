@@ -1,0 +1,14 @@
+name: Database MCP
+version: 0.0.1
+schema: v1
+mcpServers:
+  - name: sqlite
+    type: stdio
+    command: uvx
+    args:
+      - "example-sqlite-mcp==0.3.0"
+      - "--db-path"
+      - "/tmp/example.db"
+  - name: remote-sse
+    type: sse
+    url: https://sse.x.example/events

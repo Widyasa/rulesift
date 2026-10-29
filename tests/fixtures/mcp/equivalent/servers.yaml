@@ -1,0 +1,13 @@
+name: Example servers
+version: 0.0.1
+schema: v1
+mcpServers:
+  - name: docs
+    command: npx
+    args:
+      - "-y"
+      - "@example/docs-mcp@1.2.3"
+    env:
+      DOCS_TOKEN: ${DOCS_TOKEN}
+  - name: search
+    url: https://search.x.example/mcp

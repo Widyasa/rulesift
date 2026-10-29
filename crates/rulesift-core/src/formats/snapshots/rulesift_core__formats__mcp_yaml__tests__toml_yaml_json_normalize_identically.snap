@@ -1,0 +1,39 @@
+---
+source: crates/rulesift-core/src/formats/mcp_yaml.rs
+expression: "serde_json::to_string_pretty(&shape(&j)).unwrap()"
+---
+[
+  {
+    "name": "docs",
+    "transport": "stdio",
+    "command": "npx",
+    "args": [
+      "-y",
+      "@example/docs-mcp@1.2.3"
+    ],
+    "env": {
+      "DOCS_TOKEN": "${DOCS_TOKEN}"
+    },
+    "headers": {},
+    "auto_trust": false,
+    "auto_approve": [],
+    "disabled": false,
+    "pointer": "",
+    "line": 0,
+    "field_lines": {}
+  },
+  {
+    "name": "search",
+    "transport": "http",
+    "args": [],
+    "env": {},
+    "url": "https://search.x.example/mcp",
+    "headers": {},
+    "auto_trust": false,
+    "auto_approve": [],
+    "disabled": false,
+    "pointer": "",
+    "line": 0,
+    "field_lines": {}
+  }
+]

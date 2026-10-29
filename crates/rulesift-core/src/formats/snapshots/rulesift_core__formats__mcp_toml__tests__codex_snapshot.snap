@@ -1,0 +1,62 @@
+---
+source: crates/rulesift-core/src/formats/mcp_toml.rs
+expression: "serde_json::to_string_pretty(&c).unwrap()"
+---
+{
+  "servers": [
+    {
+      "name": "docs",
+      "transport": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@example/docs-mcp@1.2.3"
+      ],
+      "env": {
+        "DOCS_TOKEN": "${DOCS_TOKEN}"
+      },
+      "headers": {},
+      "auto_trust": false,
+      "auto_approve": [],
+      "disabled": false,
+      "pointer": "/mcp_servers/docs",
+      "line": 6,
+      "field_lines": {
+        "args": 8,
+        "command": 7,
+        "env": 10
+      }
+    },
+    {
+      "name": "remote",
+      "transport": "http",
+      "args": [],
+      "env": {},
+      "url": "https://mcp.x.example/mcp",
+      "headers": {
+        "X-Client": "codex"
+      },
+      "auto_trust": false,
+      "auto_approve": [],
+      "disabled": false,
+      "pointer": "/mcp_servers/remote",
+      "line": 13,
+      "field_lines": {
+        "url": 14
+      }
+    }
+  ],
+  "issues": [],
+  "settings": [
+    {
+      "key": "approval_policy",
+      "value": "on-request",
+      "line": 3
+    },
+    {
+      "key": "sandbox_mode",
+      "value": "workspace-write",
+      "line": 4
+    }
+  ]
+}

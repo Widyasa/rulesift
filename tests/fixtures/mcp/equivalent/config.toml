@@ -1,0 +1,7 @@
+[mcp_servers.docs]
+command = "npx"
+args = ["-y", "@example/docs-mcp@1.2.3"]
+env = { DOCS_TOKEN = "${DOCS_TOKEN}" }
+
+[mcp_servers.search]
+url = "https://search.x.example/mcp"
