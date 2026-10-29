@@ -18,6 +18,7 @@ pub mod parse;
 pub mod registry;
 pub mod reveal;
 pub mod rules;
+pub mod scan;
 pub mod score;
 pub mod suppress;
 pub mod text;

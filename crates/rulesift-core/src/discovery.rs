@@ -335,6 +335,40 @@ fn walk_dir(
         .filter_entry(|e| e.file_name() != ".git")
         .build();
 
+    // When a relative sub-directory such as `.cursor` is scanned, its files
+    // match registry patterns only with the directory prefix restored.
+    let prefix: Option<String> = (root.is_relative()
+        && root.components().count() > 0
+        && root.components().all(|c| {
+            matches!(
+                c,
+                std::path::Component::Normal(_) | std::path::Component::CurDir
+            )
+        }))
+    .then(|| {
+        to_slash(root)
+            .trim_start_matches("./")
+            .trim_end_matches('/')
+            .to_string()
+    })
+    .filter(|p| !p.is_empty() && p != ".");
+    let effective = |rel: &str| -> (String, bool) {
+        if registry::match_path(rel, Origin::Walked).is_some() {
+            return (rel.to_string(), false);
+        }
+        if let Some(p) = &prefix {
+            // try the innermost directories first: `a/.claude` → `.claude/x`, `a/.claude/x`
+            let parts: Vec<&str> = p.split('/').collect();
+            for i in (0..parts.len()).rev() {
+                let full = format!("{}/{rel}", parts[i..].join("/"));
+                if registry::match_path(&full, Origin::Walked).is_some() {
+                    return (full, true);
+                }
+            }
+        }
+        (rel.to_string(), false)
+    };
+
     // First pass: collect candidate files (relative paths) and skill dirs.
     let mut entries: BTreeMap<String, PathBuf> = BTreeMap::new();
     for item in walker {
@@ -389,7 +423,8 @@ fn walk_dir(
             r.ends_with("SKILL.md") && (r.as_str() == "SKILL.md" || r.ends_with("/SKILL.md"))
         })
         .filter(|r| {
-            registry::match_path(r, Origin::Walked).map(|x| x.kind) == Some(FileKind::Skill)
+            registry::match_path(&effective(r).0, Origin::Walked).map(|x| x.kind)
+                == Some(FileKind::Skill)
         })
         .map(|r| {
             r.rsplit_once('/')
@@ -409,7 +444,8 @@ fn walk_dir(
             .iter()
             .filter(|d| d.is_empty() || rel.starts_with(&format!("{d}/")))
             .max_by_key(|d| d.len());
-        let row = match registry::match_path(rel, Origin::Walked) {
+        let (mrel, prefixed) = effective(rel);
+        let row = match registry::match_path(&mrel, Origin::Walked) {
             Some(r) if r.kind == FileKind::Skill => Some(r),
             _ if skill_dir.is_some() => Some(&SKILL_FILE_ROW),
             Some(r) => Some(r),
@@ -428,11 +464,16 @@ fn walk_dir(
         }
         if let Some(sib) = row.requires_sibling {
             // e.g. `hooks/hooks.json` needs `.claude-plugin/` in the parent of `hooks/`.
-            let dir = Path::new(rel)
+            let dir = Path::new(&mrel)
                 .parent()
                 .and_then(Path::parent)
                 .unwrap_or(Path::new(""));
-            if !root.join(dir).join(sib).exists() {
+            let dir = if prefixed {
+                dir.to_path_buf()
+            } else {
+                root.join(dir)
+            };
+            if !dir.join(sib).exists() {
                 continue;
             }
         }
@@ -445,7 +486,7 @@ fn walk_dir(
             max_bytes,
             fs_path,
             display_join(&base, rel),
-            rel.clone(),
+            mrel,
             row,
             skill_disp,
         );

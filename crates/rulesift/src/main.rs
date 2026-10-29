@@ -3,8 +3,11 @@
 #![forbid(unsafe_code)]
 
 mod cli;
+mod common;
 mod reveal;
 mod rules;
+mod scan;
+mod table;
 
 use clap::Parser;
 use std::process::ExitCode;
