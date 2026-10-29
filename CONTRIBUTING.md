@@ -38,7 +38,7 @@ Regenerate the generated files when you change their inputs, then commit them:
 
 - **Registry** (`docs/supported-tools.md`): `RULESIFT_BLESS=1 cargo test -p rulesift-core --test registry_docs`
 - **Pre-commit hooks** (`.pre-commit-hooks.yaml`): `RULESIFT_BLESS=1 cargo test -p rulesift --test init_cmd`
-- **Packaged data** (`crates/rulesift-core/data/`, a copy of `rules/builtin/` and `schemas/`): `RULESIFT_BLESS=1 cargo test -p rulesift-core --test embedded_data`
+- **Packaged data** (`crates/rulesift-core/data/`, a copy of `rules/builtin/` and `schemas/`; and `LICENSE-*` in each crate): `RULESIFT_BLESS=1 cargo test -p rulesift-core --test embedded_data`
 
 ## Adding or changing a rule
 

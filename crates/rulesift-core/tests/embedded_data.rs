@@ -1,5 +1,6 @@
 //! `data/` (packaged with the crate) must match the repo's canonical
-//! `rules/builtin/` and `schemas/report.v1.json`. Resync with
+//! `rules/builtin/` and `schemas/report.v1.json`, and each crate carries a
+//! copy of the license texts (#109). Resync with
 //! `RULESIFT_BLESS=1 cargo test -p rulesift-core --test embedded_data`.
 
 use std::path::{Path, PathBuf};
@@ -18,6 +19,12 @@ fn pairs() -> Vec<(PathBuf, PathBuf)> {
                 p.clone(),
                 krate.join("data/rules").join(p.file_name().unwrap()),
             ));
+        }
+    }
+    // license texts packaged in each crate (#109)
+    for name in ["LICENSE-MIT", "LICENSE-APACHE"] {
+        for c in ["rulesift-core", "rulesift"] {
+            out.push((repo.join(name), repo.join("crates").join(c).join(name)));
         }
     }
     out
@@ -43,5 +50,5 @@ fn packaged_data_matches_repo() {
         );
     }
     let copies = std::fs::read_dir(krate.join("data/rules")).unwrap().count();
-    assert_eq!(copies + 1, pairs().len(), "stale files in data/rules");
+    assert_eq!(copies + 1 + 4, pairs().len(), "stale files in data/rules");
 }
