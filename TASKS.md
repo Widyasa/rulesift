@@ -201,7 +201,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: output validates against the schema in a test (`jsonschema` dev-dep); each file entry carries `tool` and `kind`; snapshot with redacted `generated_at` and version.
   - Dep: W4-T5
 
-- [ ] **W4-T7 SARIF 2.1.0**
+- [x] **W4-T7 SARIF 2.1.0**
   - Description: §10.2 with `serde-sarif`; vendor the SARIF 2.1.0 JSON schema under `tests/schemas/` (note its source and license).
   - Files: `core/report/sarif.rs`
   - Done when: output validates against the schema; levels and `security-severity` mapping tested; paths are relative with `%SRCROOT%`.

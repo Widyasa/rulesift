@@ -18,6 +18,7 @@ ignore = "0.4.34"
 regex = "1.13.1"
 serde = { version = "1.0.229", features = ["derive"] }
 serde-saphyr = "2.0.0"
+serde-sarif = "0.8.0"
 serde_json = "1.0.154"
 sha2 = "0.11.1"
 thiserror = "2.0.21"
