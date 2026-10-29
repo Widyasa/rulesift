@@ -13,7 +13,7 @@ pub const CODEX_SETTINGS: &[&str] = &["approval_policy", "sandbox_mode"];
 
 /// Map TOML paths (as JSON pointers) to 1-based lines by scanning table
 /// headers and `key =` lines.
-fn line_map(text: &str) -> BTreeMap<String, usize> {
+pub(crate) fn line_map(text: &str) -> BTreeMap<String, usize> {
     let mut map = BTreeMap::new();
     let mut table: Vec<String> = Vec::new();
     for (i, raw) in text.lines().enumerate() {

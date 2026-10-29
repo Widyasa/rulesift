@@ -3,7 +3,6 @@
 //! Spec: <https://agentskills.io/specification>. These checks are hard-coded
 //! for now and move to YAML rules referencing detectors in W3-T3.
 
-use crate::model::{Finding, Severity};
 use crate::parse::frontmatter::{self, Frontmatter};
 use serde_json::Value;
 
@@ -34,26 +33,6 @@ pub struct SkillIssue {
     pub message: String,
     /// Evidence snippet.
     pub evidence: String,
-}
-
-/// Default title and severity of the skill-format rules.
-pub fn rule_meta(id: &str) -> (&'static str, Severity) {
-    match id {
-        "RS-FMT-001" => (
-            "Missing or unparseable SKILL.md frontmatter",
-            Severity::Medium,
-        ),
-        "RS-FMT-002" => ("Invalid skill name", Severity::Medium),
-        "RS-FMT-003" => ("Skill name does not match its directory", Severity::Low),
-        "RS-FMT-004" => (
-            "Missing, empty, or over-long skill description",
-            Severity::Low,
-        ),
-        _ => (
-            "Unknown skill frontmatter field or over-long compatibility",
-            Severity::Low,
-        ),
-    }
 }
 
 /// Is `name` valid per the spec: 1–64 chars, lowercase ASCII letters, digits,
@@ -209,30 +188,6 @@ pub fn check(text: &str, dir_name: Option<&str>) -> Vec<SkillIssue> {
     out
 }
 
-/// Check a `SKILL.md` and return findings for `path`.
-pub fn findings(path: &str, text: &str, dir_name: Option<&str>) -> Vec<Finding> {
-    check(text, dir_name)
-        .into_iter()
-        .map(|i| {
-            let (title, severity) = rule_meta(i.rule_id);
-            Finding {
-                rule_id: i.rule_id.to_string(),
-                severity,
-                title: title.to_string(),
-                message: i.message,
-                path: path.to_string(),
-                line: i.line,
-                column: 1,
-                end_line: i.line,
-                evidence: i.evidence.chars().take(200).collect(),
-                decoded: None,
-                fingerprint: String::new(),
-                suppressed: false,
-            }
-        })
-        .collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -301,12 +256,5 @@ mod tests {
             "x".repeat(501)
         );
         assert_eq!(ids(&check(&long, Some("a"))), vec![("RS-FMT-005", 4)]);
-    }
-
-    #[test]
-    fn findings_carry_titles() {
-        let f = findings("x/SKILL.md", "no frontmatter", Some("x"));
-        assert_eq!(f[0].title, "Missing or unparseable SKILL.md frontmatter");
-        assert_eq!(f[0].severity, Severity::Medium);
     }
 }

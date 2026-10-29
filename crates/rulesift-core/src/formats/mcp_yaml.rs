@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 
 /// Map pointers to lines for block-style YAML: top-level keys, list items
 /// under them, and keys inside those items.
-fn line_map(text: &str) -> BTreeMap<String, usize> {
+pub(crate) fn line_map(text: &str) -> BTreeMap<String, usize> {
     let mut map = BTreeMap::new();
     let mut top: Option<String> = None;
     let mut idx: Option<usize> = None;

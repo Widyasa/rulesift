@@ -507,30 +507,6 @@ mod tests {
     }
 
     #[test]
-    fn builtin_metadata_matches_hardcoded() {
-        let set = load(&LoadOptions {
-            builtin: true,
-            ..Default::default()
-        })
-        .unwrap();
-        for (id, _title, sev, _) in crate::rules::detectors::unicode::UNI_RULES {
-            assert_eq!(set.get(id).unwrap().severity, *sev, "{id}");
-        }
-        for id in [
-            "RS-FMT-001",
-            "RS-FMT-002",
-            "RS-FMT-003",
-            "RS-FMT-004",
-            "RS-FMT-005",
-        ] {
-            assert_eq!(
-                set.get(id).unwrap().severity,
-                crate::validate::skill::rule_meta(id).1
-            );
-        }
-    }
-
-    #[test]
     fn user_rule_ok_and_list_form() {
         assert_eq!(user(OK).unwrap()[0].id(), "ACME-001");
         let two = format!(
