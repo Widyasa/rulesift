@@ -107,6 +107,15 @@ Release-gate QA findings (#99–#109):
 
 Release-gate QA findings on 73c04df (#132–#138):
 
+- `rulesift diff`, the Action's default on pull requests, now classifies
+  both revisions with the same discovery as `scan`: changed skill
+  supporting files (scripts, references) are scanned, oversized,
+  unreadable, and NUL-padded files get RS-FMT-008, and symlinks pointing
+  outside the repository (mode 120000 in git) get RS-FMT-008 where `scan`
+  gives it. `[scan]` include/exclude globs are matched the same way as in
+  `scan`, and new discovery warnings are reported. A dangling symlink whose
+  target lies outside the root also fails closed at an agent location
+  instead of being skipped as broken (#132, #133).
 - A directory symlink pointing outside the scan root at `.agents` or at a
   nested tool directory (`pkg/.claude`, `a/b/.cursor`) now fails closed with
   RS-FMT-008, since skills below them are discovered (#134).

@@ -217,7 +217,7 @@ Global flags: `--config <FILE>` (default: nearest `rulesift.toml` walking up fro
 Prints every invisible/format character with line:column and code point, the decoded Unicode Tag text, base64-decoded payloads, and HTML comment bodies. `--strip` prints the file to stdout with Tag, bidi, and zero-width characters removed (never edits in place).
 
 ### 6.3 `rulesift diff --base <REF> [--head <REF>] [PATHS...]`
-Uses `gix` to list files changed between `base` and `head` (default: working tree). For changed agent files it runs `scan` on the head version and prints a **capability diff**:
+Uses `gix` to read the trees of `base` and `head` (default: working tree) and classifies both with the same discovery as `scan` (skill supporting files, RS-FMT-008 for oversized, unreadable, or NUL-padded files and for symlinks pointing outside the repository, #132/#133), so `diff` blocks exactly what `scan` blocks among the changed files. For changed agent files it runs `scan` on the head version and prints a **capability diff**:
 - `+` new agent file / new MCP server / new hook / new permission rule / new `allowed-tools` entry / `alwaysApply` turned on
 - `-` removed ones
 - `~` changed: MCP server command/args/env keys/url changed; hook command changed; instruction file changed (line counts, new hidden chars, new HTML comments, new URLs/domains)

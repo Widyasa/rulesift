@@ -22,7 +22,9 @@ What the action does:
    using the cargo-dist installer from GitHub Releases. It does not use
    `cargo install`.
 2. **Run.** It runs `rulesift diff` on pull requests and `rulesift scan`
-   otherwise.
+   otherwise. `diff` finds agent files exactly like `scan` (including skill
+   scripts, RS-FMT-008 files, and symlinks pointing outside the repository)
+   and reports the changed ones.
 3. **Upload SARIF.** It uploads SARIF to GitHub Code Scanning with
    `github/codeql-action/upload-sarif`.
 4. **Comment.** It creates or updates a single PR comment, found by its

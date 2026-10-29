@@ -254,8 +254,8 @@ pub fn discover(paths: &[PathBuf], opts: &DiscoveryOptions) -> Result<Discovery>
                         anchors.push(anchor.clone());
                     }
                     push_file(
-                        &mut out, &mut seen, opts, max_bytes, &anchor, given, disp, mp, row,
-                        skill_dir,
+                        &FsReader, &mut out, &mut seen, opts, max_bytes, &anchor, given, disp, mp,
+                        row, skill_dir,
                     );
                 }
                 Some(row) => out.warnings.push(Warning {
@@ -378,6 +378,7 @@ fn match_path_for_explicit(p: &Path, row: &RegistryRow) -> Option<String> {
 
 #[allow(clippy::too_many_arguments)] // internal helper; grouping the args would only add noise
 fn push_file(
+    reader: &dyn Reader,
     out: &mut Discovery,
     seen: &mut BTreeSet<PathBuf>,
     opts: &DiscoveryOptions,
@@ -395,8 +396,7 @@ fn push_file(
     if !opts.tools.is_empty() && !opts.tools.contains(&row.tool) {
         return;
     }
-    let key = std::fs::canonicalize(fs_path).unwrap_or_else(|_| fs_path.to_path_buf());
-    if !seen.insert(key) {
+    if !seen.insert(reader.key(fs_path)) {
         return;
     }
     // Files inside a skill directory other than registry files may be real
@@ -419,14 +419,14 @@ fn push_file(
         unscannable: None,
         binary: None,
     };
-    let size = std::fs::metadata(fs_path).map(|m| m.len()).unwrap_or(0);
+    let size = reader.len(fs_path).unwrap_or(0);
     if size > max_bytes {
         let message = format!(
             "file is {} KiB, larger than max_file_size_kib = {}",
             size.div_ceil(1024),
             opts.max_file_size_kib
         );
-        let head = read_head(fs_path);
+        let head = reader.head(fs_path);
         // too large to check its structure: a real binary needs magic bytes
         // that match its extension (#136)
         if auxiliary
@@ -450,7 +450,7 @@ fn push_file(
         }
         return;
     }
-    let bytes = match std::fs::read(fs_path) {
+    let bytes = match reader.read(fs_path) {
         Ok(b) => b,
         Err(e) => {
             // an unreadable file cannot be identified as a real binary (#136)
@@ -606,14 +606,52 @@ fn has_text_ext(path: &Path) -> bool {
         .is_some_and(|e| TEXT.contains(&e.to_ascii_lowercase().as_str()))
 }
 
-/// First 64 KiB of a file (empty if it cannot be read).
-fn read_head(path: &Path) -> Vec<u8> {
-    use std::io::Read as _;
-    let mut buf = Vec::new();
-    if let Ok(f) = std::fs::File::open(path) {
-        let _ = f.take(64 * 1024).read_to_end(&mut buf);
+/// Read access to the files discovery classifies: the file system (scan),
+/// or the tree of a git revision (diff mode), so both classify files the
+/// same way (#132).
+pub trait Reader {
+    /// Size of the file in bytes.
+    fn len(&self, path: &Path) -> std::io::Result<u64>;
+    /// Content of the file.
+    fn read(&self, path: &Path) -> std::io::Result<Vec<u8>>;
+    /// First 64 KiB of the file (empty if it cannot be read).
+    fn head(&self, path: &Path) -> Vec<u8> {
+        let mut b = self.read(path).unwrap_or_default();
+        b.truncate(64 * 1024);
+        b
     }
-    buf
+    /// Whether a file or directory exists at `path`.
+    fn exists(&self, path: &Path) -> bool;
+    /// Identity of the file, to report a file reached twice only once.
+    fn key(&self, path: &Path) -> PathBuf {
+        path.to_path_buf()
+    }
+}
+
+/// [`Reader`] over the real file system.
+pub struct FsReader;
+
+impl Reader for FsReader {
+    fn len(&self, path: &Path) -> std::io::Result<u64> {
+        std::fs::metadata(path).map(|m| m.len())
+    }
+    fn read(&self, path: &Path) -> std::io::Result<Vec<u8>> {
+        std::fs::read(path)
+    }
+    fn head(&self, path: &Path) -> Vec<u8> {
+        use std::io::Read as _;
+        let mut buf = Vec::new();
+        if let Ok(f) = std::fs::File::open(path) {
+            let _ = f.take(64 * 1024).read_to_end(&mut buf);
+        }
+        buf
+    }
+    fn exists(&self, path: &Path) -> bool {
+        path.exists()
+    }
+    fn key(&self, path: &Path) -> PathBuf {
+        std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
+    }
 }
 
 /// Whether a file inside a skill directory is text an agent may run or read,
@@ -721,6 +759,48 @@ pub fn is_binary(bytes: &[u8]) -> bool {
     bytes.iter().take(8192).any(|&b| b == 0)
 }
 
+/// Files and symlinks of a directory tree, collected by a walk of the file
+/// system or from a git revision (diff mode, #132/#133).
+#[derive(Debug, Clone, Default)]
+pub struct Listing {
+    /// Regular files and symlinks to files inside the root: relative path
+    /// (`/` separated) → path the [`Reader`] reads.
+    pub files: BTreeMap<String, PathBuf>,
+    /// Symlinks pointing outside the root: (relative path, path, whether
+    /// the target is a directory, if known: a dangling target is not).
+    pub escaped: Vec<(String, PathBuf, Option<bool>)>,
+    /// Broken symlinks inside the root (relative paths).
+    pub broken: Vec<String>,
+}
+
+/// Whether a symlink whose target does not exist points outside `root`
+/// (judged by its link text). A dangling link to e.g. `/home/u/evil.md` may
+/// still resolve on the machine of the agent that loads it.
+fn dangling_escapes(link: &Path, canon_root: &Path) -> bool {
+    let Ok(t) = std::fs::read_link(link) else {
+        return false;
+    };
+    let full = if t.is_absolute() {
+        t
+    } else {
+        let parent = link.parent().unwrap_or(Path::new("."));
+        std::fs::canonicalize(parent)
+            .unwrap_or_else(|_| parent.to_path_buf())
+            .join(t)
+    };
+    let mut norm = PathBuf::new();
+    for c in full.components() {
+        match c {
+            std::path::Component::ParentDir => {
+                norm.pop();
+            }
+            std::path::Component::CurDir => {}
+            other => norm.push(other),
+        }
+    }
+    !norm.starts_with(canon_root)
+}
+
 #[allow(clippy::too_many_arguments)] // internal helper; grouping the args would only add noise
 fn walk_dir(
     root: &Path,
@@ -734,20 +814,6 @@ fn walk_dir(
 ) -> Result<()> {
     let base = to_slash(root);
     let canon_root = std::fs::canonicalize(root).map_err(|e| CoreError::io(root, e))?;
-    // `rel` relative to the anchor (e.g. the config directory), so config
-    // globs like `tests/fixtures/**` also apply when a sub-directory is
-    // scanned (#103).
-    let anchor_prefix = canon_root
-        .strip_prefix(anchor)
-        .map(to_slash)
-        .unwrap_or_default();
-    let anchored = |rel: &str| -> String { display_join(&anchor_prefix, rel) };
-    let excluded = |rel: &str| -> bool {
-        matches_path_or_parent(exclude, rel) || matches_path_or_parent(exclude, &anchored(rel))
-    };
-    let included = |rel: &str| -> bool {
-        include.is_empty() || include.is_match(rel) || include.is_match(anchored(rel))
-    };
     let walker = ignore::WalkBuilder::new(root)
         .hidden(false)
         .git_ignore(true)
@@ -778,53 +844,9 @@ fn walk_dir(
             .to_string()
     })
     .filter(|p| !p.is_empty() && p != ".");
-    let effective = |rel: &str| -> (String, bool) {
-        if registry::match_path(rel, Origin::Walked).is_some() {
-            return (rel.to_string(), false);
-        }
-        if let Some(p) = &prefix {
-            // try the innermost directories first: `a/.claude` → `.claude/x`, `a/.claude/x`
-            let parts: Vec<&str> = p.split('/').collect();
-            for i in (0..parts.len()).rev() {
-                let full = format!("{}/{rel}", parts[i..].join("/"));
-                if registry::match_path(&full, Origin::Walked).is_some() {
-                    return (full, true);
-                }
-            }
-        }
-        (rel.to_string(), false)
-    };
 
-    // Directory counterpart of `effective`: the registry row of agent files
-    // a directory could hold (see `registry::match_dir`) and its match path.
-    let sibling_ok = |dir: &str, name: &str| -> bool {
-        let d = if dir.is_empty() {
-            root.to_path_buf()
-        } else {
-            root.join(dir)
-        };
-        d.join(name).exists()
-    };
-    let effective_dir = |rel: &str| -> (Option<&'static RegistryRow>, String) {
-        if let Some(r) = registry::match_dir(rel, &sibling_ok) {
-            return (Some(r), rel.to_string());
-        }
-        if let Some(p) = &prefix {
-            let parts: Vec<&str> = p.split('/').collect();
-            for i in (0..parts.len()).rev() {
-                let full = format!("{}/{rel}", parts[i..].join("/"));
-                if let Some(r) = registry::match_dir(&full, &|_, _| false) {
-                    return (Some(r), full);
-                }
-            }
-        }
-        (None, rel.to_string())
-    };
-
-    // First pass: collect candidate files (relative paths) and skill dirs.
-    let mut entries: BTreeMap<String, PathBuf> = BTreeMap::new();
-    // symlinks whose target is outside the root: (rel, fs path, is_dir)
-    let mut escaped: Vec<(String, PathBuf, bool)> = Vec::new();
+    // First pass: collect files and symlinks.
+    let mut listing = Listing::default();
     for item in walker {
         let entry = match item {
             Ok(e) => e,
@@ -852,161 +874,316 @@ fn walk_dir(
             match std::fs::canonicalize(p) {
                 Ok(target) if target.starts_with(&canon_root) => {
                     if target.is_file() {
-                        entries.insert(rel, p.to_path_buf());
+                        listing.files.insert(rel, p.to_path_buf());
                     }
                 }
                 // warned about below, once it is known whether it hides
                 // agent files (RS-FMT-008) or is merely skipped
-                Ok(target) => escaped.push((rel, p.to_path_buf(), target.is_dir())),
-                Err(_) => out.warnings.push(Warning {
-                    path: display_join(&base, &rel),
-                    message: "skipped: broken symlink".into(),
-                }),
+                Ok(target) => listing
+                    .escaped
+                    .push((rel, p.to_path_buf(), Some(target.is_dir()))),
+                Err(_) if dangling_escapes(p, &canon_root) => {
+                    listing.escaped.push((rel, p.to_path_buf(), None));
+                }
+                Err(_) => listing.broken.push(rel),
             }
             continue;
         }
         if ft.is_file() {
-            entries.insert(rel, p.to_path_buf());
+            listing.files.insert(rel, p.to_path_buf());
         }
     }
+    // `rel` relative to the anchor (e.g. the config directory), so config
+    // globs like `tests/fixtures/**` also apply when a sub-directory is
+    // scanned (#103).
+    let anchor_prefix = canon_root
+        .strip_prefix(anchor)
+        .map(to_slash)
+        .unwrap_or_default();
+    let ctx = Classify {
+        root,
+        base,
+        prefix,
+        anchor_prefix,
+        reader: &FsReader,
+        opts,
+        include,
+        exclude,
+        max_bytes,
+        anchor,
+    };
+    ctx.run(listing, out, seen);
+    Ok(())
+}
 
-    let skill_dirs: Vec<String> = entries
-        .keys()
-        .filter(|r| {
-            r.ends_with("SKILL.md") && (r.as_str() == "SKILL.md" || r.ends_with("/SKILL.md"))
-        })
-        .filter(|r| {
-            registry::match_path(&effective(r).0, Origin::Walked).map(|x| x.kind)
-                == Some(FileKind::Skill)
-        })
-        .map(|r| {
-            r.rsplit_once('/')
-                .map(|(d, _)| d.to_string())
-                .unwrap_or_default()
-        })
-        .collect();
+/// Discover agent files in a [`Listing`] collected by the caller, read
+/// through `reader`: diff mode uses it for git revisions so that changed
+/// files are classified exactly as `scan` classifies them (#132/#133).
+/// Paths are relative to `root`, which is also the anchor.
+pub fn discover_listing(
+    root: &Path,
+    listing: Listing,
+    reader: &dyn Reader,
+    opts: &DiscoveryOptions,
+) -> Result<Discovery> {
+    let include = build_set(&opts.include)?;
+    let exclude = build_set(&opts.exclude)?;
+    let mut out = Discovery::default();
+    let mut seen = BTreeSet::new();
+    let anchor = std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
+    let ctx = Classify {
+        root,
+        base: String::new(),
+        prefix: None,
+        anchor_prefix: String::new(),
+        reader,
+        opts,
+        include: &include,
+        exclude: &exclude,
+        max_bytes: opts.max_file_size_kib.saturating_mul(1024),
+        anchor: &anchor,
+    };
+    ctx.run(listing, &mut out, &mut seen);
+    out.files.sort_by(|a, b| a.path.cmp(&b.path));
+    out.warnings.sort();
+    out.warnings.dedup();
+    Ok(out)
+}
 
-    for (rel, fs_path) in &entries {
-        if excluded(rel) {
-            continue;
-        }
-        if !included(rel) {
-            continue;
-        }
-        let skill_dir = skill_dirs
-            .iter()
-            .filter(|d| d.is_empty() || rel.starts_with(&format!("{d}/")))
-            .max_by_key(|d| d.len());
-        let (mrel, prefixed) = effective(rel);
-        let row = match registry::match_path(&mrel, Origin::Walked) {
-            Some(r) if r.kind == FileKind::Skill => Some(r),
-            _ if skill_dir.is_some() => Some(&SKILL_FILE_ROW),
-            Some(r) => Some(r),
-            None => None,
+/// Classification of a [`Listing`], shared by every discovery path.
+struct Classify<'a> {
+    root: &'a Path,
+    /// Display prefix of the root (`""` = paths relative to the root).
+    base: String,
+    /// Directory prefix restored for registry matching (a scanned `.cursor`).
+    prefix: Option<String>,
+    /// The root relative to the anchor.
+    anchor_prefix: String,
+    reader: &'a dyn Reader,
+    opts: &'a DiscoveryOptions,
+    include: &'a GlobSet,
+    exclude: &'a GlobSet,
+    max_bytes: u64,
+    anchor: &'a Path,
+}
+
+impl Classify<'_> {
+    fn run(&self, listing: Listing, out: &mut Discovery, seen: &mut BTreeSet<PathBuf>) {
+        let Self {
+            root,
+            base,
+            prefix,
+            anchor_prefix,
+            reader,
+            opts,
+            include,
+            exclude,
+            max_bytes,
+            anchor,
+        } = self;
+        let (root, reader, opts, max_bytes, anchor) = (*root, *reader, *opts, *max_bytes, *anchor);
+        let anchored = |rel: &str| -> String { display_join(anchor_prefix, rel) };
+        let excluded = |rel: &str| -> bool {
+            matches_path_or_parent(exclude, rel) || matches_path_or_parent(exclude, &anchored(rel))
         };
-        let row = match row {
-            Some(r) => r,
-            None => continue,
+        let included = |rel: &str| -> bool {
+            include.is_empty() || include.is_match(rel) || include.is_match(anchored(rel))
         };
-        if row.release != Release::Mvp {
-            out.warnings.push(Warning {
-                path: display_join(&base, rel),
-                message: format!("skipped: {} support is planned for v0.2", row.id),
-            });
-            continue;
-        }
-        if let Some(sib) = row.requires_sibling {
-            // e.g. `hooks/hooks.json` needs `.claude-plugin/` in the parent of `hooks/`.
-            let dir = Path::new(&mrel)
-                .parent()
-                .and_then(Path::parent)
-                .unwrap_or(Path::new(""));
-            let dir = if prefixed {
-                dir.to_path_buf()
+        let effective = |rel: &str| -> (String, bool) {
+            if registry::match_path(rel, Origin::Walked).is_some() {
+                return (rel.to_string(), false);
+            }
+            if let Some(p) = prefix {
+                // try the innermost directories first: `a/.claude` → `.claude/x`, `a/.claude/x`
+                let parts: Vec<&str> = p.split('/').collect();
+                for i in (0..parts.len()).rev() {
+                    let full = format!("{}/{rel}", parts[i..].join("/"));
+                    if registry::match_path(&full, Origin::Walked).is_some() {
+                        return (full, true);
+                    }
+                }
+            }
+            (rel.to_string(), false)
+        };
+
+        // Directory counterpart of `effective`: the registry row of agent files
+        // a directory could hold (see `registry::match_dir`) and its match path.
+        let sibling_ok = |dir: &str, name: &str| -> bool {
+            let d = if dir.is_empty() {
+                root.to_path_buf()
             } else {
                 root.join(dir)
             };
-            if !dir.join(sib).exists() {
+            reader.exists(&d.join(name))
+        };
+        let effective_dir = |rel: &str| -> (Option<&'static RegistryRow>, String) {
+            if let Some(r) = registry::match_dir(rel, &sibling_ok) {
+                return (Some(r), rel.to_string());
+            }
+            if let Some(p) = prefix {
+                let parts: Vec<&str> = p.split('/').collect();
+                for i in (0..parts.len()).rev() {
+                    let full = format!("{}/{rel}", parts[i..].join("/"));
+                    if let Some(r) = registry::match_dir(&full, &|_, _| false) {
+                        return (Some(r), full);
+                    }
+                }
+            }
+            (None, rel.to_string())
+        };
+
+        for rel in &listing.broken {
+            out.warnings.push(Warning {
+                path: display_join(base, rel),
+                message: "skipped: broken symlink".into(),
+            });
+        }
+        let entries = listing.files;
+        let skill_dirs: Vec<String> = entries
+            .keys()
+            .filter(|r| {
+                r.ends_with("SKILL.md") && (r.as_str() == "SKILL.md" || r.ends_with("/SKILL.md"))
+            })
+            .filter(|r| {
+                registry::match_path(&effective(r).0, Origin::Walked).map(|x| x.kind)
+                    == Some(FileKind::Skill)
+            })
+            .map(|r| {
+                r.rsplit_once('/')
+                    .map(|(d, _)| d.to_string())
+                    .unwrap_or_default()
+            })
+            .collect();
+        let skill_dir_of = |rel: &str| {
+            skill_dirs
+                .iter()
+                .filter(|d| d.is_empty() || rel.starts_with(&format!("{d}/")))
+                .max_by_key(|d| d.len())
+        };
+
+        for (rel, fs_path) in &entries {
+            if excluded(rel) {
                 continue;
             }
+            if !included(rel) {
+                continue;
+            }
+            let skill_dir = skill_dir_of(rel);
+            let (mrel, prefixed) = effective(rel);
+            let row = match registry::match_path(&mrel, Origin::Walked) {
+                Some(r) if r.kind == FileKind::Skill => Some(r),
+                _ if skill_dir.is_some() => Some(&SKILL_FILE_ROW),
+                Some(r) => Some(r),
+                None => None,
+            };
+            let row = match row {
+                Some(r) => r,
+                None => continue,
+            };
+            if row.release != Release::Mvp {
+                out.warnings.push(Warning {
+                    path: display_join(base, rel),
+                    message: format!("skipped: {} support is planned for v0.2", row.id),
+                });
+                continue;
+            }
+            if let Some(sib) = row.requires_sibling {
+                // e.g. `hooks/hooks.json` needs `.claude-plugin/` in the parent of `hooks/`.
+                let dir = Path::new(&mrel)
+                    .parent()
+                    .and_then(Path::parent)
+                    .unwrap_or(Path::new(""));
+                let dir = if prefixed {
+                    dir.to_path_buf()
+                } else {
+                    root.join(dir)
+                };
+                if !reader.exists(&dir.join(sib)) {
+                    continue;
+                }
+            }
+            let skill_disp =
+                skill_dir.map(|d| display_join(base, d).trim_end_matches('/').to_string());
+            push_file(
+                reader,
+                out,
+                seen,
+                opts,
+                max_bytes,
+                anchor,
+                fs_path,
+                display_join(base, rel),
+                mrel,
+                row,
+                skill_disp,
+            );
         }
-        let skill_disp =
-            skill_dir.map(|d| display_join(&base, d).trim_end_matches('/').to_string());
-        push_file(
-            out,
-            seen,
-            opts,
-            max_bytes,
-            anchor,
-            fs_path,
-            display_join(&base, rel),
-            mrel,
-            row,
-            skill_disp,
-        );
-    }
-    // An out-of-root symlink at an agent-file location (or a directory
-    // symlink where agent files would live) hides content from the scan
-    // while agents may still follow it: report it as unscannable (#100).
-    for (rel, fs_path, is_dir) in escaped {
-        let (row, mpath) = if is_dir {
-            effective_dir(&rel)
-        } else {
-            let m = effective(&rel).0;
-            (registry::match_path(&m, Origin::Walked), m)
-        };
-        // Inside a skill directory any file (a script the skill runs) or
-        // directory may be loaded by the agent (#135).
-        let skill_dir = skill_dirs
-            .iter()
-            .filter(|d| d.is_empty() || rel.starts_with(&format!("{d}/")))
-            .max_by_key(|d| d.len());
-        let row = match row {
-            Some(r) if r.kind == FileKind::Skill => Some(r),
-            _ if skill_dir.is_some() => Some(&SKILL_FILE_ROW),
-            r => r,
-        };
-        let skill_disp =
-            skill_dir.map(|d| display_join(&base, d).trim_end_matches('/').to_string());
-        let row = row.filter(|r| {
-            r.release == Release::Mvp
-                && !excluded(&rel)
-                && included(&rel)
-                && (opts.kinds.is_empty() || opts.kinds.contains(&r.kind))
-                && (opts.tools.is_empty() || opts.tools.contains(&r.tool))
-        });
-        let what = if is_dir {
-            "directory symlink points outside the scan root"
-        } else {
-            "symlink points outside the scan root"
-        };
-        let path = display_join(&base, &rel);
-        let Some(row) = row else {
-            out.warnings.push(Warning {
-                path,
-                message: "skipped: symlink points outside the scan root".into(),
+        // An out-of-root symlink at an agent-file location (or a directory
+        // symlink where agent files would live) hides content from the scan
+        // while agents may still follow it: report it as unscannable (#100).
+        for (rel, fs_path, is_dir) in listing.escaped {
+            let as_file = || {
+                let m = effective(&rel).0;
+                (registry::match_path(&m, Origin::Walked), m)
+            };
+            let (row, mpath) = match is_dir {
+                Some(true) => effective_dir(&rel),
+                Some(false) => as_file(),
+                // dangling: it may name a file or a directory
+                None => match as_file() {
+                    (Some(r), m) => (Some(r), m),
+                    _ => effective_dir(&rel),
+                },
+            };
+            // Inside a skill directory any file (a script the skill runs) or
+            // directory may be loaded by the agent (#135).
+            let skill_dir = skill_dir_of(&rel);
+            let row = match row {
+                Some(r) if r.kind == FileKind::Skill => Some(r),
+                _ if skill_dir.is_some() => Some(&SKILL_FILE_ROW),
+                r => r,
+            };
+            let skill_disp =
+                skill_dir.map(|d| display_join(base, d).trim_end_matches('/').to_string());
+            let row = row.filter(|r| {
+                r.release == Release::Mvp
+                    && !excluded(&rel)
+                    && included(&rel)
+                    && (opts.kinds.is_empty() || opts.kinds.contains(&r.kind))
+                    && (opts.tools.is_empty() || opts.tools.contains(&r.tool))
             });
-            continue;
-        };
-        out.warnings.push(Warning {
-            path: path.clone(),
-            message: format!("not scanned (RS-FMT-008): {what}"),
-        });
-        let stable_path = relative_to_anchor(&fs_path, anchor).unwrap_or_else(|| path.clone());
-        out.files.push(DiscoveredFile {
-            path,
-            match_path: mpath,
-            stable_path,
-            fs_path,
-            row,
-            skill_dir: skill_disp,
-            text: String::new(),
-            lossy: false,
-            unscannable: Some(what.into()),
-            binary: None,
-        });
+            let what = if is_dir == Some(true) {
+                "directory symlink points outside the scan root"
+            } else {
+                "symlink points outside the scan root"
+            };
+            let path = display_join(base, &rel);
+            let Some(row) = row else {
+                out.warnings.push(Warning {
+                    path,
+                    message: "skipped: symlink points outside the scan root".into(),
+                });
+                continue;
+            };
+            out.warnings.push(Warning {
+                path: path.clone(),
+                message: format!("not scanned (RS-FMT-008): {what}"),
+            });
+            let stable_path = relative_to_anchor(&fs_path, anchor).unwrap_or_else(|| path.clone());
+            out.files.push(DiscoveredFile {
+                path,
+                match_path: mpath,
+                stable_path,
+                fs_path,
+                row,
+                skill_dir: skill_disp,
+                text: String::new(),
+                lossy: false,
+                unscannable: Some(what.into()),
+                binary: None,
+            });
+        }
     }
-    Ok(())
 }
 
 #[cfg(test)]
