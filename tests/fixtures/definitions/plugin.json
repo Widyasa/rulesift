@@ -1,0 +1,16 @@
+{
+  "name": "example-plugin",
+  "version": "0.0.1",
+  "description": "Example plugin with inline servers and hooks.",
+  "mcpServers": {
+    "helper": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/bin/helper",
+      "args": ["--stdio"]
+    }
+  },
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [{ "type": "command", "command": "echo hello" }] }
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+---
+source: crates/rulesift-core/src/formats/definitions.rs
+expression: "serde_json::to_string_pretty(&plugin::normalize(&fixture(\"marketplace.json\"),\ntrue)).unwrap()"
+---
+{
+  "kind": "marketplace",
+  "name": "example-marketplace",
+  "mcp": {
+    "servers": [],
+    "issues": []
+  },
+  "hooks": {
+    "hooks": [],
+    "issues": []
+  },
+  "plugins": [
+    {
+      "name": "formatter",
+      "source": "./plugins/formatter",
+      "line": 5
+    },
+    {
+      "name": "remote",
+      "source": "{\"repo\":\"example/remote-plugin\",\"source\":\"github\"}",
+      "line": 6
+    }
+  ],
+  "issues": []
+}

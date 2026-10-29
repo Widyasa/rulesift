@@ -91,7 +91,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: snapshot of normalized hooks for each tool's fixture; invalid files yield RS-FMT-007.
   - Dep: W2-T1
 
-- [ ] **W2-T5 Settings, plugin manifests, agent and command definitions**
+- [x] **W2-T5 Settings, plugin manifests, agent and command definitions**
   - Description: Claude settings (`permissions`, `defaultMode`, `enableAllProjectMcpServers`), Claude plugin/marketplace manifests, and `md+fm` definitions for agents (`.claude/agents/*.md`, `.github/agents/*`) and commands (`.claude/commands/**`, `.cursor/commands/*`, `.github/prompts/*.prompt.md`, Windsurf/Devin and Cline workflows), extracting tool grants (`tools`, `allowed-tools`, `permissionMode`, `mcpServers`/`mcp-servers`).
   - Files: `core/formats/settings.rs`, `core/formats/plugin.rs`, `core/formats/definitions.rs`, fixtures
   - Done when: extracted grants snapshot per fixture; RS-FMT-007 for invalid JSON.

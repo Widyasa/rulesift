@@ -1,0 +1,24 @@
+---
+source: crates/rulesift-core/src/formats/definitions.rs
+expression: "fm_grants(\"claude-command.md\")"
+---
+[
+  {
+    "kind": "allowed_tool",
+    "value": "Bash(git add:*)",
+    "line": 3,
+    "pointer": "/allowed-tools"
+  },
+  {
+    "kind": "allowed_tool",
+    "value": "Bash(git commit:*)",
+    "line": 3,
+    "pointer": "/allowed-tools"
+  },
+  {
+    "kind": "allowed_tool",
+    "value": "Bash(git status:*)",
+    "line": 3,
+    "pointer": "/allowed-tools"
+  }
+]

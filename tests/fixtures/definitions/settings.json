@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": ["Bash(npm run test:*)", "Read(~/notes/**)"],
+    "ask": ["Bash(git push:*)"],
+    "deny": ["Read(./.env)", "WebFetch"],
+    "defaultMode": "acceptEdits"
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": ["docs"]
+}

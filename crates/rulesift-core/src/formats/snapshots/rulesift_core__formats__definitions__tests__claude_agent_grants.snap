@@ -1,0 +1,42 @@
+---
+source: crates/rulesift-core/src/formats/definitions.rs
+expression: "fm_grants(\"claude-agent.md\")"
+---
+[
+  {
+    "kind": "permission_mode",
+    "value": "default",
+    "line": 6,
+    "pointer": "/permissionMode"
+  },
+  {
+    "kind": "tool",
+    "value": "Bash(sqlite3:*)",
+    "line": 4,
+    "pointer": "/tools"
+  },
+  {
+    "kind": "tool",
+    "value": "Grep",
+    "line": 4,
+    "pointer": "/tools"
+  },
+  {
+    "kind": "tool",
+    "value": "Read",
+    "line": 4,
+    "pointer": "/tools"
+  },
+  {
+    "kind": "disallowed_tool",
+    "value": "Write",
+    "line": 5,
+    "pointer": "/disallowedTools"
+  },
+  {
+    "kind": "mcp_server",
+    "value": "sqlite",
+    "line": 7,
+    "pointer": "/mcpServers"
+  }
+]
