@@ -8,6 +8,8 @@
 
 Instructions download a script from the internet and run it immediately. Pin the version or vendor the script into the repo.
 
+Covered forms: `curl`/`wget`/`fetch` piped into a shell (`sh`, `bash`, `zsh`, …, also with `sudo`, `env`, or `-s -- args`), `sh -c "$(curl …)"`, PowerShell `iwr … | iex`, and `curl`/`wget` piped into `python`, `perl`, `ruby`, or `node` when the interpreter reads its program from stdin (no arguments, or `-`). A pipe into an interpreter that gets its program elsewhere (`python3 -c "…"`, `python3 -m json.tool`, `node -e`, `perl -pe`, `python3 parse.py`) only parses the download as data and is not flagged.
+
 ## Why it matters
 
 `curl … | bash` runs whatever the server returns at that moment. The script can change after review, differ per request, or be swapped by a compromised domain. It was the most common payload in Snyk's ToxicSkills study.

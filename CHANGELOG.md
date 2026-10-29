@@ -55,6 +55,9 @@ Release-gate QA findings (#99–#109):
   UTF-16 files are decoded and scanned. Discovery warnings are printed
   without `-v` (`-q` hides them) and appear in JSON (`warnings`) and SARIF
   (tool execution notifications) (#100).
+- RS-EXEC-001 no longer flags `curl … | python3 -c "…"`, `| python3 -m …`,
+  `| node -e …`, `| perl -pe …`, or `| python3 script.py`, where the download
+  is data, not the program (#102).
 
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0
