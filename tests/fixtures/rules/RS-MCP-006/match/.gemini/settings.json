@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "x": {
+      "command": "x-mcp",
+      "trust": true
+    }
+  }
+}

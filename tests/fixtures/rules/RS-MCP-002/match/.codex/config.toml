@@ -1,0 +1,5 @@
+[mcp_servers.api]
+command = "api-mcp"
+
+[mcp_servers.api.env]
+API_KEY = "EXAMPLE9w2Lq7Zt4Xr8Vb3"

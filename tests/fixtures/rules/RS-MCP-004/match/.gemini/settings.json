@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "remote": {
+      "httpUrl": "http://mcp.x.example/mcp"
+    }
+  }
+}

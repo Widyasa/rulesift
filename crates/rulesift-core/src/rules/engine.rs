@@ -240,6 +240,21 @@ fn eval(cx: &Ctx, node: &Node) -> Vec<Loc> {
     }
 }
 
+/// Does a text-only matcher tree (regex, phrases, combinators) match the
+/// plain string `s`? Scopes and structural matchers are ignored (false).
+pub fn node_matches_str(node: &Node, s: &str) -> bool {
+    match &node.matcher {
+        Matcher::Regex(re) => re.is_match(s),
+        Matcher::Phrases(ac, _) => ac.find_iter(s).any(|m| {
+            !is_word(s[..m.start()].chars().next_back()) && !is_word(s[m.end()..].chars().next())
+        }),
+        Matcher::Any(k) => k.iter().any(|c| node_matches_str(c, s)),
+        Matcher::All(k) => k.iter().all(|c| node_matches_str(c, s)),
+        Matcher::Not(c) => !node_matches_str(c, s),
+        _ => false,
+    }
+}
+
 /// Evaluate one rule against a file (ignoring `applies_to`). Returns
 /// deduplicated locations sorted by position.
 pub fn evaluate(rule: &Rule, a: &Analyzed) -> Vec<Loc> {

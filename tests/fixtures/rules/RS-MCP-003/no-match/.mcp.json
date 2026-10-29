@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "fs": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@acme/example-fs-mcp@1.2.3"
+      ]
+    },
+    "db": {
+      "command": "uvx",
+      "args": [
+        "example-sqlite-mcp==0.3.0"
+      ]
+    },
+    "gh": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "ghcr.io/acme/example-mcp:1.4.0"
+      ]
+    }
+  }
+}

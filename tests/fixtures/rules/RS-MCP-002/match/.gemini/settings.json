@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "api": {
+      "httpUrl": "https://mcp.x.example/mcp",
+      "headers": {
+        "Authorization": "Bearer EXAMPLE7f3Kq9Zr2LmW8xYt4"
+      }
+    }
+  }
+}

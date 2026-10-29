@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "gh": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "ghcr.io/acme/example-mcp"
+      ]
+    }
+  }
+}

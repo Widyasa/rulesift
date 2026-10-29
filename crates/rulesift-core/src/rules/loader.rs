@@ -19,11 +19,13 @@ macro_rules! builtin_files {
 /// Built-in rule files (name, YAML source). A test checks that every file
 /// in `rules/builtin/` is listed here.
 pub const BUILTIN: &[(&str, &str)] = builtin_files!(
+    "cfg.yaml",
     "exec.yaml",
     "exf.yaml",
     "fmt.yaml",
     "hid.yaml",
     "inj.yaml",
+    "mcp.yaml",
     "sec.yaml",
     "uni.yaml",
 );

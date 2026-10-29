@@ -1,0 +1,8 @@
+name: DB
+version: 0.0.1
+schema: v1
+mcpServers:
+  - name: sqlite
+    command: uvx
+    args:
+      - example-sqlite-mcp
