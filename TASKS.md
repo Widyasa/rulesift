@@ -293,7 +293,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: `dist plan` succeeds locally/CI; `dist build` for the host target works in a PR job; no tag pushed, nothing published.
   - Dep: W6-T3
 
-- [ ] **W6-T5 pip packaging via maturin**
+- [x] **W6-T5 pip packaging via maturin**
   - Description: `pyproject.toml` with `bindings = "bin"`, package name `rulesift`; CI job that builds wheels (no upload).
   - Files: `pyproject.toml`, `.github/workflows/release.yml`
   - Done when: `maturin build` produces a wheel whose `rulesift --version` works in a fresh venv (CI job).
