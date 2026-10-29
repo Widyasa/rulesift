@@ -783,6 +783,93 @@ pub fn match_path(rel: &str, origin: Origin) -> Option<&'static RegistryRow> {
     })
 }
 
+/// Find the row of agent files a directory at `rel` (relative to the scan
+/// root, `/` separated) could hold, for directories the scan cannot enter
+/// (symlinks outside the root, #100/#122). Generic over the registry:
+///
+/// - a glob rooted at a fixed location (`.cursor/rules/**/*.mdc`,
+///   `.claude/settings.json`) matches when `rel` is one of its directories
+///   or a directory its `**` reaches;
+/// - a glob starting with `**/` (`**/.claude-plugin/plugin.json`) matches
+///   when a trailing part of `rel` names one of its directories, so a dir
+///   that only might contain a nested `AGENTS.md` does not count;
+/// - skills (`**/SKILL.md`, which can sit anywhere) match any directory at
+///   or below a `skills` directory (`.claude/skills`, `.claude/skills/x`,
+///   `skills/x/scripts`).
+///
+/// `sibling_ok(dir, name)` reports whether `name` exists in `dir` (scan-root
+/// relative) for rows with [`RegistryRow::requires_sibling`].
+pub fn match_dir(
+    rel: &str,
+    sibling_ok: &dyn Fn(&str, &str) -> bool,
+) -> Option<&'static RegistryRow> {
+    let rel = rel.trim_start_matches("./").trim_end_matches('/');
+    let parts: Vec<&str> = rel.split('/').filter(|p| !p.is_empty()).collect();
+    if parts.is_empty() {
+        return None;
+    }
+    let usable = |r: &RegistryRow| r.release == Release::Mvp && !r.global_only;
+    let generic = ROWS.iter().filter(|r| usable(r)).find(|r| {
+        r.globs.iter().any(|g| {
+            let comps: Vec<&str> = g.split('/').collect();
+            let fits = |dir: &[&str], glob: &[&str], start: usize| -> bool {
+                match dir_fits_glob(dir, glob) {
+                    DirFit::No => false,
+                    DirFit::Yes => true,
+                    // `dir` is exactly the file's directory: check siblings
+                    DirFit::FileDir => r.requires_sibling.is_none_or(|sib| {
+                        sibling_ok(&parts[..start + dir.len() - 1].join("/"), sib)
+                    }),
+                }
+            };
+            match comps.split_first() {
+                Some((&"**", rest)) => (0..parts.len()).any(|k| fits(&parts[k..], rest, k)),
+                _ => fits(&parts, &comps, 0),
+            }
+        })
+    });
+    generic.or_else(|| {
+        parts
+            .contains(&"skills")
+            .then(|| ROWS.iter().find(|r| usable(r) && r.kind == FileKind::Skill))
+            .flatten()
+    })
+}
+
+/// How a directory path relates to a file glob's components.
+enum DirFit {
+    /// The glob cannot match anything below the directory.
+    No,
+    /// The glob can match a file below the directory.
+    Yes,
+    /// The directory is the glob's file directory itself.
+    FileDir,
+}
+
+fn dir_fits_glob(dir: &[&str], glob: &[&str]) -> DirFit {
+    for (i, d) in dir.iter().enumerate() {
+        let Some(g) = glob.get(i) else {
+            return DirFit::No;
+        };
+        if *g == "**" {
+            return DirFit::Yes;
+        }
+        // the last glob component names the file, not a directory
+        if i + 1 == glob.len() {
+            return DirFit::No;
+        }
+        let ok = compile_glob(g).map(|m| m.is_match(d)).unwrap_or(false);
+        if !ok {
+            return DirFit::No;
+        }
+    }
+    if dir.len() + 1 == glob.len() {
+        DirFit::FileDir
+    } else {
+        DirFit::Yes
+    }
+}
+
 /// Match an explicitly passed file: try the full relative path, then every
 /// suffix of its components (so `/home/u/.codex/config.toml` matches
 /// `.codex/config.toml`), longest first.
@@ -914,6 +1001,57 @@ pub fn render_table() -> String {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+
+    #[test]
+    fn match_dir_covers_agent_locations_generically() {
+        let none = |_: &str, _: &str| false;
+        let id = |rel: &str| match_dir(rel, &none).map(|r| r.id);
+        // skills, at any depth below a `skills` dir (#122)
+        for rel in [
+            ".claude/skills",
+            ".claude/skills/evil",
+            ".claude/skills/x/scripts",
+            ".agents/skills/x",
+            ".cursor/skills",
+            "skills/x",
+            "pkg/.claude/skills/x",
+        ] {
+            assert_eq!(id(rel), Some("agent-skills"), "{rel}");
+        }
+        // fixed locations and their parents
+        for rel in [
+            ".claude",
+            ".cursor",
+            ".cursor/rules",
+            ".cursor/rules/linked",
+            ".github",
+            ".github/instructions",
+            ".windsurf/rules",
+            ".continue/mcpServers",
+            ".kiro/steering",
+            ".roo/rules-code",
+            ".clinerules",
+            ".codex",
+            "a/.claude-plugin",
+        ] {
+            assert!(id(rel).is_some(), "{rel}");
+        }
+        // ordinary directories do not count
+        for rel in [
+            "src",
+            "vendor/lib",
+            "node_modules",
+            "docs/rules",
+            ".vscode/extensions",
+            "hooks",
+        ] {
+            assert_eq!(id(rel), None, "{rel}");
+        }
+        // plugin hooks need the `.claude-plugin` sibling
+        let yes = |d: &str, s: &str| d == "plug" && s == ".claude-plugin";
+        assert!(match_dir("plug/hooks", &yes).is_some());
+        assert!(match_dir("other/hooks", &yes).is_none());
+    }
 
     #[test]
     fn all_globs_compile() {

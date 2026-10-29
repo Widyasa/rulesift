@@ -91,7 +91,7 @@ Exit codes:
 | 2 | Usage, config, or git error |
 
 An agent file that RuleSift cannot scan (larger than `max_file_size_kib`,
-unreadable, a symlink pointing outside the scan root, or containing NUL bytes)
+unreadable, a file or agent-location directory symlink pointing outside the scan root, or containing NUL bytes)
 is never dropped silently. It is reported as the critical finding
 [RS-FMT-008](rules/RS-FMT-008.md), so the file is `block` and the default
 policy exits 1. The reason is also printed on stderr (hidden by `-q`), listed

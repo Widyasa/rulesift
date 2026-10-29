@@ -643,6 +643,32 @@ fn walk_dir(
         (rel.to_string(), false)
     };
 
+    // Directory counterpart of `effective`: the registry row of agent files
+    // a directory could hold (see `registry::match_dir`) and its match path.
+    let sibling_ok = |dir: &str, name: &str| -> bool {
+        let d = if dir.is_empty() {
+            root.to_path_buf()
+        } else {
+            root.join(dir)
+        };
+        d.join(name).exists()
+    };
+    let effective_dir = |rel: &str| -> (Option<&'static RegistryRow>, String) {
+        if let Some(r) = registry::match_dir(rel, &sibling_ok) {
+            return (Some(r), rel.to_string());
+        }
+        if let Some(p) = &prefix {
+            let parts: Vec<&str> = p.split('/').collect();
+            for i in (0..parts.len()).rev() {
+                let full = format!("{}/{rel}", parts[i..].join("/"));
+                if let Some(r) = registry::match_dir(&full, &|_, _| false) {
+                    return (Some(r), full);
+                }
+            }
+        }
+        (None, rel.to_string())
+    };
+
     // First pass: collect candidate files (relative paths) and skill dirs.
     let mut entries: BTreeMap<String, PathBuf> = BTreeMap::new();
     // symlinks whose target is outside the root: (rel, fs path, is_dir)
@@ -677,13 +703,9 @@ fn walk_dir(
                         entries.insert(rel, p.to_path_buf());
                     }
                 }
-                Ok(target) => {
-                    out.warnings.push(Warning {
-                        path: display_join(&base, &rel),
-                        message: "skipped: symlink points outside the scan root".into(),
-                    });
-                    escaped.push((rel, p.to_path_buf(), target.is_dir()));
-                }
+                // warned about below, once it is known whether it hides
+                // agent files (RS-FMT-008) or is merely skipped
+                Ok(target) => escaped.push((rel, p.to_path_buf(), target.is_dir())),
                 Err(_) => out.warnings.push(Warning {
                     path: display_join(&base, &rel),
                     message: "skipped: broken symlink".into(),
@@ -775,57 +797,51 @@ fn walk_dir(
     // symlink where agent files would live) hides content from the scan
     // while agents may still follow it: report it as unscannable (#100).
     for (rel, fs_path, is_dir) in escaped {
-        if excluded(&rel) {
-            continue;
-        }
-        if !included(&rel) {
-            continue;
-        }
-        let row = if is_dir {
-            DIR_PROBES.iter().find_map(|c| {
-                let probe = effective(&format!("{rel}/{c}")).0;
-                registry::match_path(&probe, Origin::Walked)
-            })
+        let (row, mpath) = if is_dir {
+            effective_dir(&rel)
         } else {
-            registry::match_path(&effective(&rel).0, Origin::Walked)
+            let m = effective(&rel).0;
+            (registry::match_path(&m, Origin::Walked), m)
         };
-        let Some(row) = row.filter(|r| r.release == Release::Mvp) else {
-            continue;
+        let row = row.filter(|r| {
+            r.release == Release::Mvp
+                && !excluded(&rel)
+                && included(&rel)
+                && (opts.kinds.is_empty() || opts.kinds.contains(&r.kind))
+                && (opts.tools.is_empty() || opts.tools.contains(&r.tool))
+        });
+        let what = if is_dir {
+            "directory symlink points outside the scan root"
+        } else {
+            "symlink points outside the scan root"
         };
-        if !opts.kinds.is_empty() && !opts.kinds.contains(&row.kind) {
-            continue;
-        }
-        if !opts.tools.is_empty() && !opts.tools.contains(&row.tool) {
-            continue;
-        }
         let path = display_join(&base, &rel);
+        let Some(row) = row else {
+            out.warnings.push(Warning {
+                path,
+                message: "skipped: symlink points outside the scan root".into(),
+            });
+            continue;
+        };
+        out.warnings.push(Warning {
+            path: path.clone(),
+            message: format!("not scanned (RS-FMT-008): {what}"),
+        });
         let stable_path = relative_to_anchor(&fs_path, anchor).unwrap_or_else(|| path.clone());
         out.files.push(DiscoveredFile {
             path,
-            match_path: effective(&rel).0,
+            match_path: mpath,
             stable_path,
             fs_path,
             row,
             skill_dir: None,
             text: String::new(),
             lossy: false,
-            unscannable: Some(if is_dir {
-                "directory symlink points outside the scan root".into()
-            } else {
-                "symlink points outside the scan root".into()
-            }),
+            unscannable: Some(what.into()),
         });
     }
     Ok(())
 }
-
-/// Child names probed under an out-of-root directory symlink: if any of them
-/// would be an agent file there, the symlink hides agent files. Names that
-/// match anywhere (`AGENTS.md`, `SKILL.md`) are left out on purpose, or every
-/// directory symlink would count.
-const DIR_PROBES: &[&str] = &[
-    "x.md", "x.mdc", "x.json", "x.toml", "x.yaml", "x.yml", "x/x.md", "x/x",
-];
 
 #[cfg(test)]
 mod tests {
