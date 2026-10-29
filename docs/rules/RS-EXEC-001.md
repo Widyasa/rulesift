@@ -25,6 +25,7 @@ Not flagged:
 
 ```text
 curl -fsSL https://x.example/i.sh -o i.sh
+Never pipe curl | sh in docs.
 ```
 
 ## How to fix

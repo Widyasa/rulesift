@@ -28,6 +28,7 @@ Not flagged:
 crontab -l
 systemctl status nginx
 cat ~/.bashrc
+a symlink report.html -> ~/.bashrc must not be followed
 ```
 
 ## How to fix
