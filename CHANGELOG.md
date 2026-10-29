@@ -65,6 +65,10 @@ Release-gate QA findings (#99–#109):
   of the changed file names, so excluded files never block a commit (#103).
 - RS-UNI-001 to RS-UNI-004 also find hidden characters written as `\uXXXX`
   escapes in JSON, TOML, and YAML string values (#104).
+- RS-FMT-005 accepts the documented Claude Code skill fields
+  (`disable-model-invocation`, `argument-hint`, `context`, `hooks`, …) for
+  skills under `.claude/skills/` or a plugin's `skills/`, and no longer claims
+  that unknown fields are ignored (#105).
 
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0

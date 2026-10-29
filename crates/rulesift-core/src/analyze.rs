@@ -186,7 +186,7 @@ pub fn analyze(
             None => segs = markdown::parse(text),
         }
         if has(ParserFamily::Skill) {
-            a.skill_issues = skill::check(text, skill_dir);
+            a.skill_issues = skill::check_at(text, skill_dir, match_path);
         }
         if let Some(d) = row.dialect {
             if d != crate::registry::Dialect::AgentSkill {
