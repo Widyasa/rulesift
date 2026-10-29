@@ -125,7 +125,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: `assert_cmd` snapshot of output for a fixture with tags, bidi, zero-width, base64, and an HTML comment; `--strip` output contains none of them.
   - Dep: W3-T1
 
-- [ ] **W3-T3 Rule schema and loader**
+- [x] **W3-T3 Rule schema and loader**
   - Description: YAML rule format (§8 example) parsed with `serde-saphyr`; built-ins embedded via `include_str!`; user dirs; ID policy (user rules must not use `RS-`); regex size limits; move RS-FMT-001..007 and RS-UNI-001..004 to YAML rules referencing detectors.
   - Files: `core/rules/schema.rs`, `core/rules/loader.rs`, `rules/builtin/*.yaml`
   - Done when: malformed rule files give English errors with file and rule id; all built-ins load in a test.

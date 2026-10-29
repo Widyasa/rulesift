@@ -630,6 +630,7 @@ dependencies = [
 name = "rulesift-core"
 version = "0.0.1"
 dependencies = [
+ "aho-corasick",
  "comrak",
  "globset",
  "ignore",

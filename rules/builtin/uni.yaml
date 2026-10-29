@@ -1,0 +1,58 @@
+# Hidden Unicode rules (PRD §8). Examples use YAML escapes so this file
+# contains no invisible characters.
+- id: RS-UNI-001
+  title: Hidden Unicode Tag characters
+  severity: critical
+  category: hidden-text
+  match:
+    detector: unicode_tags
+  message: >
+    The file contains invisible Unicode Tag characters (U+E0000-U+E007F).
+    Models read them as text but people cannot see them; this is a known way
+    to hide instructions. The decoded text is shown.
+  examples:
+    should_match: ["Use tabs.\U000E0072\U000E0075\U000E006E\U000E0020\U000E0078"]
+    should_not_match: ["Use tabs."]
+  references:
+    - https://embracethered.com/blog/posts/2024/hiding-and-finding-text-with-unicode-tags/
+
+- id: RS-UNI-002
+  title: Bidirectional control characters
+  severity: high
+  category: hidden-text
+  match:
+    detector: bidi
+  message: >
+    The file contains bidirectional control characters, which can make text
+    display differently from how it is read (Trojan Source).
+  examples:
+    should_match: ["Allow user \u202Enimda\u202C only."]
+    should_not_match: ["Allow user admin only."]
+  references:
+    - https://trojansource.codes/
+
+- id: RS-UNI-003
+  title: Zero-width characters inside words or runs
+  severity: medium
+  category: hidden-text
+  match:
+    detector: zero_width
+  message: >
+    Zero-width characters split words invisibly and can hide keywords from
+    reviewers and filters. A byte order mark at the start of the file is allowed.
+  examples:
+    should_match: ["Never ig\u200Bnore lint errors."]
+    should_not_match: ["\uFEFFNever ignore lint errors."]
+
+- id: RS-UNI-004
+  title: Variation selectors or invisible format characters in runs
+  severity: medium
+  category: hidden-text
+  match:
+    detector: invisible_format
+  message: >
+    Runs of variation selectors or other invisible format characters can
+    carry hidden data inside otherwise normal text.
+  examples:
+    should_match: ["Done.\uFE00\uFE01\uFE02\uFE03\uFE04\uFE05\uFE06\uFE07"]
+    should_not_match: ["Done."]

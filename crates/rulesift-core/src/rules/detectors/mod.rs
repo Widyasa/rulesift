@@ -2,6 +2,21 @@
 
 pub mod unicode;
 
+/// Names of the built-in detectors YAML rules may reference.
+pub const KNOWN_DETECTORS: &[&str] = &[
+    "skill_frontmatter",
+    "skill_name",
+    "skill_dir_name",
+    "skill_description",
+    "skill_fields",
+    "dialect_frontmatter",
+    "config_format",
+    "unicode_tags",
+    "bidi",
+    "zero_width",
+    "invisible_format",
+];
+
 /// One detector match inside a text.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Hit {
