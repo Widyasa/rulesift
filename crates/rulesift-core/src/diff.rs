@@ -740,7 +740,13 @@ pub(crate) mod tests {
         let paths: Vec<&str> = out.report.files.iter().map(|f| f.path.as_str()).collect();
         assert_eq!(
             paths,
-            vec![".claude/settings.json", ".mcp.json", "AGENTS.md"]
+            vec![
+                ".claude/settings.json",
+                // a skill's new supporting script is an agent file (#132)
+                ".claude/skills/pdf-tools/scripts/setup.sh",
+                ".mcp.json",
+                "AGENTS.md"
+            ]
         );
         let lock = out.report.lock.as_ref().unwrap();
         assert!(lock.present);
