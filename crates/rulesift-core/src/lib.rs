@@ -8,6 +8,7 @@
 
 pub mod analyze;
 pub mod baseline;
+mod binfmt;
 pub mod config;
 pub mod diff;
 pub mod discovery;

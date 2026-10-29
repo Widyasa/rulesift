@@ -27,9 +27,18 @@ A file at an agent-file location that RuleSift could not fully scan:
 
 Files inside a skill directory count as agent files here when they are text
 an agent may run or read: a script or text extension (`.sh`, `.py`, `.js`,
-`.md`, `.json`, …), a `#!` shebang, or content that is almost all printable
-(so `bash setup.png` cannot hide a script). Real binary assets there, such as
-images, fonts, and archives, are skipped with a warning.
+`.md`, `.json`, …), a `#!` shebang, or content that is almost all printable.
+Any other file there is skipped with a warning only when it is confidently a
+real binary format: its magic bytes and its structure check out (PNG chunks
+with valid CRCs ending in `IEND`, GIF/JPEG/PDF trailers, a ZIP end record, a
+TrueType/OpenType table directory, WOFF/RIFF lengths), or, for formats
+without a structure check (gzip, tar, ICO, …) and for files too large to
+read in full, its magic bytes match its extension. Its printable text is
+still checked by the other rules, so a script hidden in a PNG text chunk is
+found. Everything else, such as a script padded with NUL bytes or a PNG
+header glued onto a script (`bash logo.png` still runs it), is scanned as
+text and reported as RS-FMT-008 (#136). An unreadable file there always gets
+RS-FMT-008.
 
 UTF-16 files (with a BOM, or plain ASCII text saved as UTF-16) are decoded
 and scanned normally; they do not trigger this rule.

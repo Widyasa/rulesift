@@ -311,8 +311,10 @@ pub fn run_rules<'r>(rules: impl IntoIterator<Item = &'r Rule>, a: &Analyzed) ->
     let mut out = Vec::new();
     for r in rules.into_iter().filter(|r| r.applies_to(a.kind())) {
         // A file that could not be read has no content to match; only the
-        // RS-FMT-008 detector reports on it.
+        // RS-FMT-008 detector reports on it. An unrecognized binary file in a
+        // skill keeps its printable text, which all rules check (#136).
         if a.unscannable.is_some()
+            && a.doc.text.is_empty()
             && !matches!(&r.node.matcher, Matcher::Detector(d) if d == "unscannable")
         {
             continue;
