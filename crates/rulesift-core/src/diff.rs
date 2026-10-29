@@ -564,6 +564,7 @@ pub fn diff(
             present: lock_present,
             violations,
         },
+        warnings: vec![],
     };
     crate::report::canonicalize(&mut report);
     Ok(DiffOutput { report, changed })

@@ -3,9 +3,9 @@
 use crate::model::{Report, Severity};
 use crate::rules::loader::Rule;
 use serde_sarif::sarif::{
-    ArtifactLocation, Location, Message, MultiformatMessageString, PhysicalLocation, PropertyBag,
-    Region, ReportingDescriptor, Result as SarifResult, ResultLevel, Run, Sarif, Tool,
-    ToolComponent,
+    ArtifactLocation, Invocation, Location, Message, MultiformatMessageString, Notification,
+    PhysicalLocation, PropertyBag, Region, ReportingDescriptor, Result as SarifResult, ResultLevel,
+    Run, Sarif, Tool, ToolComponent,
 };
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -167,10 +167,40 @@ pub fn to_sarif_log(report: &Report, rules: &[Rule]) -> Sarif {
         .semantic_version(r.tool.version.clone())
         .rules(descriptors)
         .build();
-    let run = Run::builder()
+    let mut run = Run::builder()
         .tool(Tool::builder().driver(driver).build())
         .results(results)
         .build();
+    if !r.warnings.is_empty() {
+        // Skipped or not fully scanned files are tool execution
+        // notifications, so they are visible in code scanning too (#100).
+        let notes: Vec<Notification> = r
+            .warnings
+            .iter()
+            .map(|w| {
+                Notification::builder()
+                    .level(serde_json::Value::String("warning".into()))
+                    .message(Message::builder().text(w.message.clone()).build())
+                    .locations(vec![Location::builder()
+                        .physical_location(
+                            PhysicalLocation::builder()
+                                .artifact_location(
+                                    ArtifactLocation::builder()
+                                        .uri(relative_uri(&w.path))
+                                        .uri_base_id("%SRCROOT%".to_string())
+                                        .build(),
+                                )
+                                .build(),
+                        )
+                        .build()])
+                    .build()
+            })
+            .collect();
+        run.invocations = Some(vec![Invocation::builder()
+            .execution_successful(true)
+            .tool_execution_notifications(notes)
+            .build()]);
+    }
     Sarif::builder()
         .schema(serde_sarif::sarif::SCHEMA_URL.to_string())
         .version(serde_json::Value::String("2.1.0".into()))

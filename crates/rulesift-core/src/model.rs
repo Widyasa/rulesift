@@ -404,6 +404,18 @@ pub struct Report {
     /// Lockfile status.
     #[serde(default)]
     pub lock: LockStatus,
+    /// Discovery warnings (skipped or not fully scanned files), sorted.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub warnings: Vec<ReportWarning>,
+}
+
+/// A discovery warning in a report.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct ReportWarning {
+    /// Display path.
+    pub path: String,
+    /// English message.
+    pub message: String,
 }
 
 /// Direction of a capability change (PRD §6.3).
@@ -611,6 +623,7 @@ mod tests {
             files,
             changes: vec![],
             lock: LockStatus::default(),
+            warnings: vec![],
         };
         assert_eq!(r.summary.block, 1);
         assert_eq!(r.summary.repo_tier, Tier::Block);

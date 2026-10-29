@@ -29,6 +29,7 @@ pub const KNOWN_DETECTORS: &[&str] = &[
     "mcp_plain_http",
     "mcp_auto_trust",
     "hook_risk",
+    "unscannable",
 ];
 
 /// One detector match inside a text.
@@ -168,6 +169,31 @@ pub fn run(name: &str, a: &crate::analyze::Analyzed) -> Vec<Loc> {
         "mcp_plain_http" => mcp::mcp_plain_http(a),
         "mcp_auto_trust" => mcp::mcp_auto_trust(a),
         "hook_risk" => mcp::hook_risk(a),
+        "unscannable" => unscannable(&li, a),
         _ => Vec::new(),
     }
+}
+
+/// RS-FMT-008: the file could not be read or analysed, or contains NUL bytes
+/// (tools that treat it as binary skip it while agents may still read it).
+fn unscannable(li: &crate::text::LineIndex, a: &crate::analyze::Analyzed) -> Vec<Loc> {
+    if let Some(reason) = &a.unscannable {
+        let mut l = Loc::at_line(li, 1, reason.clone());
+        l.message = Some(format!(
+            "RuleSift could not scan this agent file: {reason}. An agent may still load it, so it is treated as unsafe. Fix the file, raise `max_file_size_kib`, or suppress RS-FMT-008 for this path with a reason."
+        ));
+        return vec![l];
+    }
+    let text = a.doc.text.as_str();
+    let Some(pos) = text.find('\0') else {
+        return Vec::new();
+    };
+    let (line, _) = li.position(pos);
+    let ev = text.lines().nth(line.saturating_sub(1)).unwrap_or("");
+    let mut l = Loc::at_line(li, line, truncate(&unicode::render(ev.trim()), 200));
+    l.message = Some(
+        "The file contains NUL bytes. Scanners and editors may treat it as binary and skip it while agents still read it. It was scanned as text; remove the NUL bytes."
+            .into(),
+    );
+    vec![l]
 }

@@ -24,6 +24,7 @@ RuleSift ships these built-in rules (`rules/builtin/*.yaml`) and three lock chec
 | [RS-FMT-005](RS-FMT-005.md) | low | Unknown skill frontmatter field or over-long compatibility |
 | [RS-FMT-006](RS-FMT-006.md) | low | Invalid frontmatter for the tool's dialect |
 | [RS-FMT-007](RS-FMT-007.md) | medium | Invalid agent config file |
+| [RS-FMT-008](RS-FMT-008.md) | critical | Agent file could not be scanned |
 | [RS-HID-001](RS-HID-001.md) | high | Instruction-like text inside an HTML comment |
 | [RS-HID-002](RS-HID-002.md) | high | Base64 payload decodes to commands or URLs |
 | [RS-INJ-001](RS-INJ-001.md) | high | Instruction override |

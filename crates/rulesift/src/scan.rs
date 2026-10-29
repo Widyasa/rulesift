@@ -246,7 +246,9 @@ pub fn run(g: &GlobalArgs, a: &ScanArgs) -> anyhow::Result<ExitCode> {
         warnings,
         ..
     } = scan(&p.rules, &p.opts)?;
-    if g.verbose {
+    // Skipped and not fully scanned files are always reported (#100);
+    // `-q` hides these notes (RS-FMT-008 findings still show).
+    if !g.quiet {
         for w in &warnings {
             eprintln!("warning: {}: {}", w.path, w.message);
         }

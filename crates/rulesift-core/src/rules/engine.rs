@@ -310,6 +310,13 @@ pub fn finding(rule: &Rule, path: &str, l: Loc) -> Finding {
 pub fn run_rules<'r>(rules: impl IntoIterator<Item = &'r Rule>, a: &Analyzed) -> Vec<Finding> {
     let mut out = Vec::new();
     for r in rules.into_iter().filter(|r| r.applies_to(a.kind())) {
+        // A file that could not be read has no content to match; only the
+        // RS-FMT-008 detector reports on it.
+        if a.unscannable.is_some()
+            && !matches!(&r.node.matcher, Matcher::Detector(d) if d == "unscannable")
+        {
+            continue;
+        }
         for l in evaluate(r, a) {
             out.push(finding(r, &a.doc.path, l));
         }

@@ -29,6 +29,9 @@ pub struct Analyzed {
     pub match_path: String,
     /// Stable (anchor-relative) path used for fingerprints; `None` = `doc.path`.
     pub stable_path: Option<String>,
+    /// Why the file could not be read or analysed (RS-FMT-008); only the
+    /// `unscannable` detector runs on such a file.
+    pub unscannable: Option<String>,
     /// Skill directory name, for files inside a skill.
     pub skill_dir: Option<String>,
     /// Frontmatter, if the file has one.
@@ -152,6 +155,7 @@ pub fn analyze(
         row,
         match_path: match_path.to_string(),
         stable_path: None,
+        unscannable: None,
         skill_dir: skill_dir.map(str::to_string),
         frontmatter: None,
         value: None,

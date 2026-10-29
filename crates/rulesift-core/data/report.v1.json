@@ -120,6 +120,26 @@
           }
         }
       }
+    },
+    "warnings": {
+      "description": "Discovery notes, sorted by path: files skipped or not fully scanned (agent files that could not be scanned are also reported as RS-FMT-008 findings), decoded encodings, broken symlinks. Omitted when empty.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "message"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
     }
   },
   "$defs": {

@@ -116,3 +116,20 @@
     path: .mcp.json
     should_match: ["{\"mcpServers\": {\"demo\": {\"command\": \"echo\",}}"]
     should_not_match: ["{\"mcpServers\": {\"demo\": {\"command\": \"echo\"}}}"]
+
+- id: RS-FMT-008
+  title: Agent file could not be scanned
+  severity: critical
+  category: format
+  applies_to: [skill, instructions, command, agent, mcp-config, hooks, settings, plugin]
+  match:
+    detector: unscannable
+  message: >
+    The file is at an agent-file location but RuleSift could not fully scan
+    it: it is larger than `max_file_size_kib`, unreadable, a symlink that
+    points outside the scan root, or it contains NUL bytes. An agent may
+    still load it, so the file fails closed instead of passing silently.
+  examples:
+    path: AGENTS.md
+    should_match: ["# Project\n\nUse tabs.\n<!-- \0 -->\n"]
+    should_not_match: ["# Project\n\nUse tabs.\n"]

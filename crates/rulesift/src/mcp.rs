@@ -528,6 +528,7 @@ mod tests {
             files,
             changes: vec![],
             lock: LockStatus::default(),
+            warnings: vec![],
         };
         assert_eq!(cap_findings(&mut r, MAX_FINDINGS), 61);
         assert_eq!(r.files[0].findings.len(), MAX_FINDINGS);
