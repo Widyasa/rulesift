@@ -30,10 +30,10 @@ pub struct GlobalArgs {
     /// Disable colors (also honors NO_COLOR).
     #[arg(long, global = true)]
     pub no_color: bool,
-    /// Print less output (hides OK files and discovery warnings).
+    /// Print less output (hides OK files, discovery warnings, and unknown rule id warnings).
     #[arg(short, long, global = true)]
     pub quiet: bool,
-    /// Print more output (rule-loading warnings).
+    /// Print more output (currently no extra output: warnings show by default).
     #[arg(short, long, global = true)]
     pub verbose: bool,
 }

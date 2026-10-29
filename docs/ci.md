@@ -26,8 +26,8 @@ What the action does:
 3. **Upload SARIF.** It uploads SARIF to GitHub Code Scanning with
    `github/codeql-action/upload-sarif`.
 4. **Comment.** It creates or updates a single PR comment, found by its
-   `<!-- rulesift:pr-comment -->` marker, using `actions/github-script` and
-   the automatic `GITHUB_TOKEN`.
+   `<!-- rulesift:pr-comment -->` marker and its `github-actions[bot]` author,
+   using `actions/github-script` and the automatic `GITHUB_TOKEN`.
 5. **Exit.** It exits with RuleSift's exit code after the uploads.
 
 The `rulesift` binary itself never uses the network. You don't need any

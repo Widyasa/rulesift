@@ -78,6 +78,11 @@ Release-gate QA findings (#99–#109):
   `docs/configuration.md#suppressing-findings` (#108).
 - The `rulesift` and `rulesift-core` crates include `LICENSE-MIT` and
   `LICENSE-APACHE` (#109).
+- MCP tools are annotated `readOnlyHint: true` / `openWorldHint: false`; the
+  Action's PR-comment step only updates its own `github-actions[bot]` comment;
+  a missing `--config` or `--baseline` file prints the OS error once; unknown
+  rule ids in `--disable`, `[rules].disable`, or `severity_override` print a
+  warning unless `-q` (#120).
 
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0
