@@ -13,6 +13,7 @@ publish = false
 [dependencies]
 aho-corasick = "1.1.5"
 comrak = { version = "0.55.0", default-features = false }
+gix = { version = "0.90.0", default-features = false, features = ["revision", "sha1"] }
 globset = "0.4.21"
 ignore = "0.4.34"
 regex = "1.13.1"
