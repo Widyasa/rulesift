@@ -11,7 +11,7 @@ use rmcp::schemars::{self, JsonSchema};
 use rmcp::{tool, tool_handler, tool_router, ServerHandler, ServiceExt};
 use rulesift_core::diff::{diff, DiffOptions};
 use rulesift_core::git::GitRepo;
-use rulesift_core::model::{FileKind, LockStatus, Report, Severity};
+use rulesift_core::model::{FileKind, Report, Severity};
 use rulesift_core::report::json::to_json;
 use serde::Deserialize;
 use std::path::{Component, Path, PathBuf};
@@ -161,11 +161,12 @@ impl RuleSiftServer {
             Some(s) => Some(s.parse::<Severity>().map_err(err)?),
             None => None,
         };
-        let mut p = prepare(&self.global, &[path], &o).map_err(err)?;
+        let mut p = prepare(&self.global, std::slice::from_ref(&path), &o).map_err(err)?;
         p.opts.discovery.display_base = Some(self.root.clone());
         let mut r = rulesift_core::scan::scan(&p.rules, &p.opts)
             .map_err(err)?
             .report;
+        r.lock = crate::lock::scan_status(&self.global, &p.opts.paths).map_err(err)?;
         r.root = a.path.unwrap_or_else(|| ".".into());
         strip_root(&mut r, &self.root);
         apply_min_severity(&mut r, min.unwrap_or(p.min_severity));
@@ -201,7 +202,7 @@ impl RuleSiftServer {
         .map_err(err)?;
         p.opts.root = ".".into();
         let lock = if a.head.is_none() {
-            crate::lock::check(&self.global, repo.workdir()).map_err(err)?
+            Some(crate::lock::status(&self.global, repo.workdir()).map_err(err)?)
         } else {
             None
         };
@@ -266,13 +267,7 @@ impl RuleSiftServer {
     )]
     pub fn verify_lock(&self, Parameters(a): Parameters<OptPathArg>) -> Result<String, String> {
         let dir = self.rel(a.path.as_deref())?;
-        let status = match crate::lock::check(&self.global, &dir).map_err(err)? {
-            None => LockStatus::default(),
-            Some(v) => LockStatus {
-                present: true,
-                violations: v,
-            },
-        };
+        let status = crate::lock::status(&self.global, &dir).map_err(err)?;
         serde_json::to_string_pretty(&status).map_err(err)
     }
 }
@@ -527,7 +522,7 @@ mod tests {
             summary: Report::summarize(&files),
             files,
             changes: vec![],
-            lock: LockStatus::default(),
+            lock: None,
             warnings: vec![],
         };
         assert_eq!(cap_findings(&mut r, MAX_FINDINGS), 61);

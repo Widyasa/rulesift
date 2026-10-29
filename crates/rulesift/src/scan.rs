@@ -281,6 +281,18 @@ pub fn run(g: &GlobalArgs, a: &ScanArgs) -> anyhow::Result<ExitCode> {
         warnings,
         ..
     } = scan(&p.rules, &p.opts)?;
+    // The lock state is reported but does not change the exit code; gate on
+    // it with `rulesift verify` or `rulesift diff` (#106).
+    report.lock = crate::lock::scan_status(g, &p.opts.paths)?;
+    if !g.quiet {
+        if let Some(l) = report.lock.as_ref().filter(|l| !l.violations.is_empty()) {
+            eprintln!(
+                "warning: rulesift.lock: {} difference{} since the lock; run `rulesift verify`",
+                l.violations.len(),
+                if l.violations.len() == 1 { "" } else { "s" }
+            );
+        }
+    }
     // Skipped and not fully scanned files are always reported (#100);
     // `-q` hides these notes (RS-FMT-008 findings still show).
     if !g.quiet {

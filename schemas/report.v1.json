@@ -103,7 +103,11 @@
       }
     },
     "lock": {
-      "type": "object",
+      "description": "Lock state of the checked directory, or null when the lock was not checked (scan of files or several paths, diff between two revisions).",
+      "type": [
+        "object",
+        "null"
+      ],
       "additionalProperties": false,
       "required": [
         "present",
