@@ -89,6 +89,11 @@ Release-gate QA findings (#99–#109):
   directories (`.claude/skills`, `.claude/skills/<name>`, a skill's
   `scripts/`), `.claude`, `.github/instructions`, and the other tool
   directories (#122).
+- Text files inside a skill directory (scripts, references) no longer pass
+  silently when a NUL byte is added or they are padded past
+  `max_file_size_kib`: they are scanned as text with RS-FMT-008, or reported
+  as RS-FMT-008 when too large or unreadable. Only binary assets (judged by
+  content, not just the extension) are skipped with a warning (#123).
 
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0
