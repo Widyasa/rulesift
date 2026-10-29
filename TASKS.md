@@ -229,7 +229,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: tests create temp git repos (`tempfile`) and cover added, modified, deleted, renamed files.
   - Dep: W4-T5
 
-- [ ] **W5-T3 `rulesift diff` capability diff**
+- [x] **W5-T3 `rulesift diff` capability diff**
   - Description: compute `+`/`-`/`~`/`!` changes per §6.3 from the normalized models, so it works for every tool (MCP servers, hooks, permissions, agent tool grants, allowed-tools, always-loaded flags, new hidden chars/comments/URLs); include in table, JSON `changes`, and Markdown.
   - Files: `core/diff.rs`, `cli/diff.rs`
   - Done when: snapshot of the Page's diff example scenario reproduced from a temp repo; exit code follows `--fail-on` and lock state.

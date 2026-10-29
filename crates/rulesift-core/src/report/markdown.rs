@@ -99,7 +99,13 @@ pub fn to_markdown(report: &Report) -> String {
         let _ = writeln!(body, "```\n");
     }
 
-    if r.lock.present && !r.lock.violations.is_empty() {
+    if r.lock.present
+        && !r.lock.violations.is_empty()
+        && !r
+            .changes
+            .iter()
+            .any(|c| c.op == crate::model::ChangeOp::Lock)
+    {
         let _ = writeln!(body, "#### Lock violations\n");
         for v in &r.lock.violations {
             let _ = writeln!(
