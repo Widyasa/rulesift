@@ -1,0 +1,128 @@
+# Configuration
+
+RuleSift works without any config. To customize it, create a commented
+`rulesift.toml` with:
+
+```sh
+rulesift init
+```
+
+RuleSift uses the nearest `rulesift.toml`, searching upward from the first
+scanned path. Two ways to override that:
+
+- `--config FILE` uses a specific file.
+- `RULESIFT_CONFIG=FILE` does the same from the environment. An empty value
+  disables config discovery.
+
+Unknown keys are an error.
+
+## `[scan]`
+
+| Key | Default | Meaning |
+|---|---|---|
+| `paths` | `["."]` | What to scan when no paths are given on the command line |
+| `exclude` | `["node_modules/**", "target/**"]` | Globs (relative to the scanned directory) to skip |
+| `kinds` | all | `skill`, `instructions`, `command`, `agent`, `mcp-config`, `hooks`, `settings`, `plugin` |
+| `tools` | `[]` (all) | Tool ids from [supported-tools.md](supported-tools.md), e.g. `["cursor", "gemini-cli"]` |
+| `max_file_size_kib` | `2048` | Larger files are skipped with a warning |
+
+The command-line flags `--kinds`, `--tools`, `--include`, and `--exclude`
+override these for one run.
+
+## `[policy]`
+
+| Key | Default | Meaning |
+|---|---|---|
+| `fail_on` | `"block"` | Exit 1 when any file reaches this tier: `block`, `review`, `info`, `never` |
+| `min_severity` | `"low"` | Hide findings below this severity. Scores still use all findings |
+
+## `[score]`
+
+Each finding adds its severity weight (`critical`, `high`, `medium`, `low`) to
+the file's score, capped at 100. Two adjustments:
+
+- Files that agents always load (root `AGENTS.md`, `CLAUDE.md`,
+  `alwaysApply: true` rules, hooks, settings, …) are multiplied by
+  `always_loaded_multiplier`.
+- A file that both reads secrets and sends data out gets `toxic_combo_bonus`.
+
+The tier comes from the final score:
+
+| Tier | Score |
+|---|---|
+| `block` | at least `block_at` (70) |
+| `review` | at least `review_at` (40) |
+| `info` | above 0 |
+| `ok` | 0 |
+
+## `[rules]`
+
+| Key | Meaning |
+|---|---|
+| `extra_dirs` | Directories with your own YAML rules (same as `--rules DIR`) |
+| `disable` | Rule ids to turn off (same as `--disable ID`) |
+| `[rules.severity_override]` | e.g. `"RS-SEC-003" = "low"` |
+
+User rules use the same YAML schema as [`rules/builtin/`](../rules/builtin/).
+Each rule has:
+
+- `id`, `title`, `severity`, `message`;
+- an optional `applies_to`;
+- a `match` tree (`regex`, `phrases`, `json_path`, `frontmatter`, `any`/`all`/`not`, `scope`);
+- inline `examples` with `should_match` / `should_not_match`.
+
+Validate rules and run their examples with:
+
+```sh
+rulesift rules test ./my-rules
+```
+
+## Suppressing findings
+
+**Scoped suppression with a reason** (required):
+
+```toml
+[[suppress]]
+rule = "RS-EXEC-001"
+path = "skills/installer/SKILL.md"   # glob, optional (all files if absent)
+reason = "Documented installer; script is vendored and pinned."
+```
+
+Suppressed findings stay in the JSON report with `"suppressed": true` and do
+not count toward scores.
+
+**Baseline**, to adopt RuleSift in an existing repo without fixing everything
+first:
+
+```sh
+rulesift scan . --write-baseline rulesift-baseline.json   # record today's findings
+rulesift scan . --baseline rulesift-baseline.json         # only new findings count
+```
+
+Fingerprints ignore line numbers, so moving text around does not resurface a
+baselined finding.
+
+## `[explain]`
+
+Optional AI second opinion with the agent CLI you already have; see
+[explain.md](explain.md).
+
+| Key | Default | Meaning |
+|---|---|---|
+| `agent` | `"auto"` | `auto`, `codex`, `claude`, `cursor` (env `RULESIFT_AGENT` wins over this) |
+| `timeout_secs` | `120` | The agent process is killed after this |
+| `max_findings` | `10` | Findings included in the prompt |
+
+## `rulesift.lock`
+
+`rulesift lock` records a hash for every agent file, skill directory, and MCP
+server entry. Commit the file. `rulesift verify` (or `rulesift lock --check`)
+then exits 1 with these findings:
+
+- [RS-LOCK-001](rules/RS-LOCK-001.md): something changed;
+- [RS-LOCK-002](rules/RS-LOCK-002.md): something is new;
+- [RS-LOCK-003](rules/RS-LOCK-003.md): something is missing.
+
+Line endings are normalized, but any other byte change, including invisible
+characters, changes the hash. MCP `env` values are never stored; only their
+names are.
