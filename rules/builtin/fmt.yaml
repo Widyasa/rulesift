@@ -77,14 +77,16 @@
     detector: skill_fields
   message: >
     Allowed SKILL.md frontmatter fields are name, description, license,
-    compatibility, metadata, and allowed-tools; `compatibility` is at most
-    500 characters.
+    compatibility, metadata, and allowed-tools (Agent Skills spec), plus the
+    documented Claude Code fields for skills under `.claude/skills/` or a
+    plugin's `skills/`; `compatibility` is at most 500 characters.
   examples:
     path: .claude/skills/demo/SKILL.md
     should_match: ["---\nname: demo\ndescription: Demo skill for tests.\ncolour: red\n---\n"]
-    should_not_match: ["---\nname: demo\ndescription: Demo skill for tests.\nlicense: MIT\n---\n"]
+    should_not_match: ["---\nname: demo\ndescription: Demo skill for tests.\nlicense: MIT\n---\n", "---\nname: demo\ndescription: Demo skill for tests.\ndisable-model-invocation: true\n---\n"]
   references:
     - https://agentskills.io/specification
+    - https://code.claude.com/docs/en/skills
 
 - id: RS-FMT-006
   title: Invalid frontmatter for the tool's dialect

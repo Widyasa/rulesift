@@ -15,6 +15,44 @@ pub const ALLOWED_FIELDS: &[&str] = &[
     "metadata",
     "allowed-tools",
 ];
+/// Extra frontmatter fields Claude Code documents and acts on for skills in
+/// Claude Code locations (`.claude/skills/`, plugin `skills/`), see
+/// <https://code.claude.com/docs/en/skills#frontmatter-reference>.
+pub const CLAUDE_CODE_FIELDS: &[&str] = &[
+    "when_to_use",
+    "argument-hint",
+    "arguments",
+    "disable-model-invocation",
+    "user-invocable",
+    "disallowed-tools",
+    "model",
+    "effort",
+    "context",
+    "agent",
+    "background",
+    "hooks",
+    "paths",
+    "shell",
+];
+
+/// Is `match_path` a Claude Code skill location: a `.claude/skills/`
+/// directory (project, nested) or a plugin's `skills/` directory?
+pub fn is_claude_code_location(match_path: &str) -> bool {
+    let p = match_path.trim_start_matches("./");
+    let parts: Vec<&str> = p.split('/').collect();
+    parts.iter().enumerate().any(|(i, seg)| {
+        *seg == "skills"
+            && match i.checked_sub(1).map(|j| parts[j]) {
+                // `.claude/skills/` (project or nested)
+                Some(".claude") => true,
+                // another tool's skills dir (`.cursor/skills/`, `.agents/skills/`)
+                Some(prev) if prev.starts_with('.') => false,
+                // plugin layout: `skills/` or `<plugin>/skills/`
+                _ => true,
+            }
+    })
+}
+
 /// Max `name` length.
 pub const MAX_NAME: usize = 64;
 /// Max `description` length.
@@ -56,8 +94,16 @@ fn line_text(text: &str, line: usize) -> String {
         .to_string()
 }
 
-/// Check a `SKILL.md`. `dir_name` is the name of the directory containing it.
+/// Check a `SKILL.md` against the Agent Skills spec. `dir_name` is the name
+/// of the directory containing it.
 pub fn check(text: &str, dir_name: Option<&str>) -> Vec<SkillIssue> {
+    check_at(text, dir_name, "")
+}
+
+/// Check a `SKILL.md` at `match_path`. Skills in Claude Code locations may
+/// also use the Claude Code frontmatter fields (#105).
+pub fn check_at(text: &str, dir_name: Option<&str>, match_path: &str) -> Vec<SkillIssue> {
+    let claude = is_claude_code_location(match_path);
     let mut out = Vec::new();
     let fm: Frontmatter = match frontmatter::split(text) {
         Some(fm) => fm,
@@ -159,17 +205,33 @@ pub fn check(text: &str, dir_name: Option<&str>) -> Vec<SkillIssue> {
 
     // RS-FMT-005: unknown fields, compatibility length
     for key in map.keys() {
-        if !ALLOWED_FIELDS.contains(&key.as_str()) {
-            out.push(SkillIssue {
-                rule_id: "RS-FMT-005",
-                line: fm.line_of(key),
-                message: format!(
-                    "Unknown skill frontmatter field `{key}` (allowed: {}).",
-                    ALLOWED_FIELDS.join(", ")
-                ),
-                evidence: ev(key),
-            });
+        let k = key.as_str();
+        if ALLOWED_FIELDS.contains(&k) || (claude && CLAUDE_CODE_FIELDS.contains(&k)) {
+            continue;
         }
+        let message = if claude {
+            format!(
+                "Unknown skill frontmatter field `{key}`: neither the Agent Skills spec ({}) nor Claude Code ({}) defines it, so it has no effect and is easy to overlook in review.",
+                ALLOWED_FIELDS.join(", "),
+                CLAUDE_CODE_FIELDS.join(", ")
+            )
+        } else if CLAUDE_CODE_FIELDS.contains(&k) {
+            format!(
+                "Skill frontmatter field `{key}` is a Claude Code extension, not part of the Agent Skills spec ({}). Other agents do not act on it, and Agent Skills uploads reject it; move the skill under `.claude/skills/` if it is meant for Claude Code.",
+                ALLOWED_FIELDS.join(", ")
+            )
+        } else {
+            format!(
+                "Unknown skill frontmatter field `{key}`: not part of the Agent Skills spec (allowed: {}).",
+                ALLOWED_FIELDS.join(", ")
+            )
+        };
+        out.push(SkillIssue {
+            rule_id: "RS-FMT-005",
+            line: fm.line_of(key),
+            message,
+            evidence: ev(key),
+        });
     }
     if let Some(Value::String(c)) = map.get("compatibility") {
         if c.chars().count() > MAX_COMPATIBILITY {
@@ -256,5 +318,40 @@ mod tests {
             "x".repeat(501)
         );
         assert_eq!(ids(&check(&long, Some("a"))), vec![("RS-FMT-005", 4)]);
+    }
+
+    #[test]
+    fn claude_code_fields_are_valid_in_claude_locations() {
+        let text = "---\nname: deploy\ndescription: Deploy the app.\ndisable-model-invocation: true\nuser-invocable: false\nargument-hint: \"[env]\"\ncontext: fork\nagent: Explore\nhooks: {}\nwhen_to_use: When deploying.\n---\nDeploy.\n";
+        for p in [
+            ".claude/skills/deploy/SKILL.md",
+            "apps/web/.claude/skills/deploy/SKILL.md",
+            "skills/deploy/SKILL.md",
+            "my-plugin/skills/deploy/SKILL.md",
+        ] {
+            assert!(
+                ids(&check_at(text, Some("deploy"), p)).is_empty(),
+                "{p}: {:?}",
+                check_at(text, Some("deploy"), p)
+            );
+        }
+        // other tools' skill dirs follow the Agent Skills spec only
+        for p in [
+            ".cursor/skills/deploy/SKILL.md",
+            ".agents/skills/deploy/SKILL.md",
+        ] {
+            let issues = check_at(text, Some("deploy"), p);
+            assert_eq!(issues.len(), 7, "{p}");
+            assert!(
+                issues[0].message.contains("Claude Code extension"),
+                "{}",
+                issues[0].message
+            );
+        }
+        // unknown fields are still flagged everywhere, with an accurate message
+        let bad = "---\nname: deploy\ndescription: Deploy the app.\ncolour: red\n---\n";
+        let issues = check_at(bad, Some("deploy"), ".claude/skills/deploy/SKILL.md");
+        assert_eq!(ids(&issues), vec![("RS-FMT-005", 4)]);
+        assert!(!issues[0].message.contains("ignored"));
     }
 }
