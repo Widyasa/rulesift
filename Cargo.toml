@@ -10,3 +10,8 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/Widyasa/rulesift"
 homepage = "https://github.com/Widyasa/rulesift"
 authors = ["Widya Yasa"]
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
