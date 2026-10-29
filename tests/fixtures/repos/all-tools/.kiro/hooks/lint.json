@@ -1,0 +1,6 @@
+{
+  "name": "Lint on save",
+  "version": "1",
+  "when": { "type": "fileEdited", "patterns": ["**/*.ts"] },
+  "then": { "type": "runCommand", "command": "echo lint" }
+}

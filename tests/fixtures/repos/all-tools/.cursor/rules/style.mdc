@@ -1,0 +1,7 @@
+---
+description: Code style
+globs: "**/*.ts"
+alwaysApply: false
+---
+
+Prefer small functions.

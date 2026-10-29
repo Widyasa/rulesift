@@ -1,0 +1,8 @@
+{
+  "context_servers": {
+    "docs": {
+      "command": "echo",
+      "args": ["docs-server"]
+    }
+  }
+}

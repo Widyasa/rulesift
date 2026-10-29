@@ -1,0 +1,65 @@
+---
+source: crates/rulesift-core/src/discovery.rs
+expression: "listing(&d, &strip)"
+---
+.amazonq/mcp.json  tool=amazon-q kind=mcp-config row=amazon-q-mcp
+.amazonq/rules/style.md  tool=amazon-q kind=instructions row=amazon-q-rules
+.claude-plugin/marketplace.json  tool=claude-code kind=plugin row=claude-plugin
+.claude-plugin/plugin.json  tool=claude-code kind=plugin row=claude-plugin
+.claude/CLAUDE.md  tool=claude-code kind=instructions row=claude-dir-md
+.claude/agents/reviewer.md  tool=claude-code kind=agent row=claude-agents
+.claude/commands/review.md  tool=claude-code kind=command row=claude-commands
+.claude/settings.json  tool=claude-code kind=settings row=claude-settings
+.claude/settings.local.json  tool=claude-code kind=settings row=claude-settings
+.claude/skills/pdf-tools/SKILL.md  tool=agent-skills kind=skill row=agent-skills skill=.claude/skills/pdf-tools
+.claude/skills/pdf-tools/scripts/extract.sh  tool=agent-skills kind=skill row=agent-skills-file skill=.claude/skills/pdf-tools
+.cline/rules/style.md  tool=cline kind=instructions row=cline-rules
+.cline/workflows/release.md  tool=cline kind=command row=cline-workflows
+.clinerules/style.md  tool=cline kind=instructions row=cline-rules
+.clinerules/workflows/release.md  tool=cline kind=command row=cline-workflows
+.codex/config.toml  tool=codex kind=mcp-config row=codex-config
+.continue/mcpServers/db.yaml  tool=continue kind=mcp-config row=continue-mcp-yaml
+.continue/mcpServers/docs.json  tool=continue kind=mcp-config row=continue-mcp-json
+.continue/rules/style.md  tool=continue kind=instructions row=continue-rules
+.cursor/commands/fix.md  tool=cursor kind=command row=cursor-commands
+.cursor/hooks.json  tool=cursor kind=hooks row=cursor-hooks
+.cursor/mcp.json  tool=cursor kind=mcp-config row=cursor-mcp
+.cursor/rules/style.mdc  tool=cursor kind=instructions row=cursor-rules
+.cursorrules  tool=cursor kind=instructions row=cursor-rules-legacy
+.devin/hooks.json  tool=windsurf kind=hooks row=windsurf-hooks
+.devin/rules/style.md  tool=windsurf kind=instructions row=windsurf-rules
+.devin/workflows/deploy.md  tool=windsurf kind=command row=windsurf-workflows
+.gemini/settings.json  tool=gemini-cli kind=mcp-config row=gemini-settings
+.github/agents/planner.agent.md  tool=copilot kind=agent row=copilot-agents
+.github/copilot-instructions.md  tool=copilot kind=instructions row=copilot-instructions
+.github/instructions/rust.instructions.md  tool=copilot kind=instructions row=copilot-path-instructions
+.github/prompts/release.prompt.md  tool=copilot kind=command row=copilot-prompts
+.junie/AGENTS.md  tool=junie kind=instructions row=junie-guidelines
+.junie/guidelines.md  tool=junie kind=instructions row=junie-guidelines
+.junie/guidelines/testing.md  tool=junie kind=instructions row=junie-guidelines
+.junie/mcp/mcp.json  tool=junie kind=mcp-config row=junie-mcp
+.junie/playbook.md  tool=junie kind=instructions row=junie-guidelines
+.junie/rules/style.md  tool=junie kind=instructions row=junie-guidelines
+.kiro/hooks/lint.json  tool=kiro kind=hooks row=kiro-hooks
+.kiro/settings/mcp.json  tool=kiro kind=mcp-config row=kiro-mcp
+.kiro/steering/product.md  tool=kiro kind=instructions row=kiro-steering
+.mcp.json  tool=claude-code kind=mcp-config row=claude-mcp
+.roo/mcp.json  tool=roo-code kind=mcp-config row=roo-mcp
+.roo/rules-code/style.md  tool=roo-code kind=instructions row=roo-mode-rules
+.roo/rules/style.md  tool=roo-code kind=instructions row=roo-rules
+.roorules  tool=roo-code kind=instructions row=roo-rules
+.roorules-code  tool=roo-code kind=instructions row=roo-mode-rules
+.rules  tool=zed kind=instructions row=zed-rules
+.vscode/mcp.json  tool=copilot kind=mcp-config row=vscode-mcp
+.windsurf/hooks.json  tool=windsurf kind=hooks row=windsurf-hooks
+.windsurf/rules/style.md  tool=windsurf kind=instructions row=windsurf-rules
+.windsurf/workflows/deploy.md  tool=windsurf kind=command row=windsurf-workflows
+.windsurfrules  tool=windsurf kind=instructions row=windsurf-rules-legacy
+.zed/settings.json  tool=zed kind=mcp-config row=zed-settings
+AGENTS.md  tool=agents-md kind=instructions row=agents-md
+CLAUDE.local.md  tool=claude-code kind=instructions row=claude-md
+CLAUDE.md  tool=claude-code kind=instructions row=claude-md
+GEMINI.md  tool=gemini-cli kind=instructions row=gemini-md
+hooks/hooks.json  tool=claude-code kind=hooks row=claude-plugin-hooks
+pkg/AGENTS.md  tool=agents-md kind=instructions row=agents-md
+warning: .roomodes: skipped: roo-modes support is planned for v0.2

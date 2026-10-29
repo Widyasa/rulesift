@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "docs": {
+      "type": "stdio",
+      "command": "echo",
+      "args": ["docs-server"]
+    }
+  }
+}

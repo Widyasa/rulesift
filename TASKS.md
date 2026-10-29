@@ -45,7 +45,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: unit test asserts every §5.1 MVP row is present and globs compile; `rulesift --list-tools` (hidden debug flag) or a test snapshot prints the table; adding a row requires no code outside the registry.
   - Dep: W1-T3
 
-- [ ] **W1-T6 Discovery and classification**
+- [x] **W1-T6 Discovery and classification**
   - Description: walk paths with `ignore` (include all hidden dirs listed in PRD §5 F1), classify via the tool registry (attach `tool` and `kind`), group skill directories, skip binaries and files > `max_file_size_kib` with warnings, never follow symlinks outside the root, apply include/exclude globs.
   - Files: `core/discovery.rs`, `tests/fixtures/repos/all-tools/**` (one harmless file per MVP registry row)
   - Done when: snapshot of the classified file list (path, tool, kind) for the `all-tools` fixture repo; tests for size limit, binary skip, symlink escape, and exclude globs.
