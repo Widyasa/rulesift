@@ -13,6 +13,7 @@ pub mod model;
 pub mod parse;
 pub mod registry;
 pub mod text;
+pub mod validate;
 
 pub use error::{CoreError, Result};
 
