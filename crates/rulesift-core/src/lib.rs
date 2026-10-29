@@ -11,6 +11,7 @@ pub mod discovery;
 pub mod error;
 pub mod formats;
 pub mod model;
+pub mod normalize;
 pub mod parse;
 pub mod registry;
 pub mod rules;

