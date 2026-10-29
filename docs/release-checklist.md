@@ -11,15 +11,13 @@ Name check (29 Oct 2026):
 
 ## 0. One-time setup
 
-- [ ] **Token scope.** Give the CLI token the workflow scope:
-  `gh auth refresh -h github.com -s workflow`
 - [ ] **Actions.** Re-enable GitHub Actions for the repo (Settings →
   Actions), after the billing lock is resolved.
-- [ ] **Workflows.** Activate the staged workflows as described in
-  [`ci/workflows/README.md`](../ci/workflows/README.md): `git mv` them into
-  `.github/workflows/`, run `dist plan`, and open a PR.
+- [ ] **Workflows.** Already in `.github/workflows/` (staged while Actions
+  was disabled). Once Actions is on, run `dist plan` to confirm `release.yml`
+  is current and open a PR (or re-run CI on master).
 - [ ] **CI checks.** Confirm `ci`, `self-test`, `rulesift`, and `wheels` are
-  green on that PR. Then close #4, #37, and #48.
+  green on that run. Then close #4, #37, and #48.
 - [ ] **Security settings** (Settings → Code security): enable private
   vulnerability reporting (SECURITY.md links to it) and Code Scanning.
 - [ ] **Repository secrets** (Settings → Secrets and variables → Actions):
