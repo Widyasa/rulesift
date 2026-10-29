@@ -795,7 +795,9 @@ pub fn match_path(rel: &str, origin: Origin) -> Option<&'static RegistryRow> {
 ///   that only might contain a nested `AGENTS.md` does not count;
 /// - skills (`**/SKILL.md`, which can sit anywhere) match any directory at
 ///   or below a `skills` directory (`.claude/skills`, `.claude/skills/x`,
-///   `skills/x/scripts`).
+///   `skills/x/scripts`);
+/// - a tool directory at any depth (`pkg/.claude`, `.agents`) matches what
+///   it holds at the top level, and counts as a skill location itself.
 ///
 /// `sibling_ok(dir, name)` reports whether `name` exists in `dir` (scan-root
 /// relative) for rows with [`RegistryRow::requires_sibling`].
@@ -828,12 +830,55 @@ pub fn match_dir(
             }
         })
     });
-    generic.or_else(|| {
-        parts
-            .contains(&"skills")
-            .then(|| ROWS.iter().find(|r| usable(r) && r.kind == FileKind::Skill))
-            .flatten()
-    })
+    let skill_row = || ROWS.iter().find(|r| usable(r) && r.kind == FileKind::Skill);
+    if let Some(r) = generic {
+        return Some(r);
+    }
+    if parts.contains(&"skills") {
+        return skill_row();
+    }
+    // A tool directory at any depth (`pkg/.claude`, `a/b/.cursor/rules`,
+    // `.agents`): match what it would hold at the top level, and count the
+    // tool directory itself as a skill location (`<dir>/skills/<name>/SKILL.md`
+    // is discovered at any depth) (#134).
+    for k in 0..parts.len() {
+        if !is_tool_dir(parts[k]) {
+            continue;
+        }
+        if k > 0 {
+            let prefix = parts[..k].join("/");
+            let nested = |d: &str, s: &str| {
+                sibling_ok(
+                    &if d.is_empty() {
+                        prefix.clone()
+                    } else {
+                        format!("{prefix}/{d}")
+                    },
+                    s,
+                )
+            };
+            if let Some(r) = match_dir(&parts[k..].join("/"), &nested) {
+                return Some(r);
+            }
+        }
+        if k + 1 == parts.len() {
+            return skill_row();
+        }
+    }
+    None
+}
+
+/// Whether `name` is a tool's configuration directory: the first component
+/// of a scanned registry glob (`.claude`, `.cursor`, `.github`, ...) or
+/// `.agents` (the cross-tool skills location, `.agents/skills`).
+pub fn is_tool_dir(name: &str) -> bool {
+    name == ".agents"
+        || ROWS
+            .iter()
+            .filter(|r| r.release == Release::Mvp && !r.global_only)
+            .flat_map(|r| r.globs.iter())
+            .filter_map(|g| g.trim_start_matches("**/").split_once('/'))
+            .any(|(first, _)| first.starts_with('.') && first == name)
 }
 
 /// How a directory path relates to a file glob's components.
@@ -1033,9 +1078,16 @@ pub(crate) mod tests {
             ".clinerules",
             ".codex",
             "a/.claude-plugin",
+            // nested tool dirs and `.agents` (#134)
+            ".agents",
+            "pkg/.claude",
+            "a/b/.cursor",
+            "pkg/.cursor/rules",
+            "pkg/.github/instructions",
         ] {
             assert!(id(rel).is_some(), "{rel}");
         }
+        assert_eq!(id(".agents"), Some("agent-skills"));
         // ordinary directories do not count
         for rel in [
             "src",
@@ -1044,6 +1096,8 @@ pub(crate) mod tests {
             "docs/rules",
             ".vscode/extensions",
             "hooks",
+            "pkg/.claude/foo",
+            "pkg/docs",
         ] {
             assert_eq!(id(rel), None, "{rel}");
         }

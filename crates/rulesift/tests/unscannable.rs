@@ -175,6 +175,10 @@ fn symlinked_agent_dirs_outside_root_fail_closed() {
         (".claude", "", ".claude"),
         (".github/instructions", "", ".github/instructions"),
         (".cursor/rules", "", ".cursor/rules"),
+        // `.agents` and nested tool dirs hold discovered skills (#134)
+        (".agents", "", ".agents"),
+        ("pkg/.claude", "", "pkg/.claude"),
+        ("a/b/.cursor", "", "a/b/.cursor"),
     ];
     for (link, target, path) in cases {
         let t = tempfile::tempdir().unwrap();

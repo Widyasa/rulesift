@@ -105,5 +105,11 @@ Release-gate QA findings (#99–#109):
 - RS-CFG-002 checks hooks declared in the `hooks:` frontmatter of Claude
   Code skills and subagents, like hooks in `settings.json` (#126).
 
+Release-gate QA findings on 73c04df (#132–#138):
+
+- A directory symlink pointing outside the scan root at `.agents` or at a
+  nested tool directory (`pkg/.claude`, `a/b/.cursor`) now fails closed with
+  RS-FMT-008, since skills below them are discovered (#134).
+
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0

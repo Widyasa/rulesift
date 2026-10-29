@@ -16,6 +16,8 @@ A file at an agent-file location that RuleSift could not fully scan:
   `.cursor/rules/shared`, `.github/instructions`, a plugin's
   `.claude-plugin`, …) and any directory at or below a `skills` directory
   (`.claude/skills`, `.claude/skills/<name>`, `skills/<name>/scripts`).
+  Tool directories count at any depth (`.agents`, `pkg/.claude`,
+  `a/b/.cursor`), since skills below them are discovered.
   Other directory symlinks (`vendor`, `node_modules`) are skipped with a
   warning;
 - it contains NUL bytes. The file is still scanned as text, so other rules
