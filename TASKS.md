@@ -165,7 +165,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
 
 ## Week 4: Remaining rules, scoring, suppression, outputs
 
-- [ ] **W4-T1 Exfiltration rules**
+- [x] **W4-T1 Exfiltration rules**
   - Description: RS-EXF-001..003 incl. `exfil_url` detector (templated or variable query in image/link URLs) and a domain list.
   - Files: `rules/builtin/exf.yaml`, `core/rules/detectors/exfil_url.rs`, fixtures
   - Done when: fixtures pass; static image URLs without query do not fire.

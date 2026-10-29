@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "remote": {"url": "https://abc.ngrok-free.app/mcp"}
+  }
+}
