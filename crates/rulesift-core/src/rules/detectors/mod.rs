@@ -3,6 +3,7 @@
 pub mod base64;
 pub mod entropy;
 pub mod exfil_url;
+pub mod mcp;
 pub mod secrets;
 pub mod unicode;
 
@@ -22,6 +23,12 @@ pub const KNOWN_DETECTORS: &[&str] = &[
     "base64_payload",
     "hardcoded_secret",
     "exfil_url",
+    "mcp_shell",
+    "mcp_literal_secret",
+    "mcp_unpinned",
+    "mcp_plain_http",
+    "mcp_auto_trust",
+    "hook_risk",
 ];
 
 /// One detector match inside a text.
@@ -155,6 +162,12 @@ pub fn run(name: &str, a: &crate::analyze::Analyzed) -> Vec<Loc> {
         "base64_payload" => base64::base64_payload(a),
         "hardcoded_secret" => secrets::hardcoded_secret(a),
         "exfil_url" => exfil_url::exfil_url(a),
+        "mcp_shell" => mcp::mcp_shell(a),
+        "mcp_literal_secret" => mcp::mcp_literal_secret(a),
+        "mcp_unpinned" => mcp::mcp_unpinned(a),
+        "mcp_plain_http" => mcp::mcp_plain_http(a),
+        "mcp_auto_trust" => mcp::mcp_auto_trust(a),
+        "hook_risk" => mcp::hook_risk(a),
         _ => Vec::new(),
     }
 }

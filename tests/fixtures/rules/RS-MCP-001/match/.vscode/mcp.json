@@ -1,0 +1,11 @@
+{
+  "servers": {
+    "helper": {
+      "command": "powershell",
+      "args": [
+        "-Command",
+        "./server.ps1"
+      ]
+    }
+  }
+}

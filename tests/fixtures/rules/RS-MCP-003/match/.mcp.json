@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "fs": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@acme/example-fs-mcp"
+      ]
+    }
+  }
+}

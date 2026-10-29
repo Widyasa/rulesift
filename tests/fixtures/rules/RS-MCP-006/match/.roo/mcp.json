@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "x": {
+      "command": "x-mcp",
+      "alwaysAllow": [
+        "run_query"
+      ]
+    }
+  }
+}

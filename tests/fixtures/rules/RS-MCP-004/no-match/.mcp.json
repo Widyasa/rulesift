@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "remote": {
+      "type": "http",
+      "url": "https://mcp.x.example/mcp"
+    },
+    "local": {
+      "type": "http",
+      "url": "http://localhost:3000/mcp"
+    },
+    "loop": {
+      "type": "sse",
+      "url": "http://127.0.0.1:9000/sse"
+    }
+  }
+}

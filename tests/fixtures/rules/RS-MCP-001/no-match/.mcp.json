@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "helper": {
+      "command": "node",
+      "args": [
+        "server.js"
+      ]
+    },
+    "py": {
+      "command": "bash",
+      "args": [
+        "./run-server.sh"
+      ]
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "db": {
+      "command": "db-mcp",
+      "description": "Queries the example database. Ask the user before writing."
+    }
+  }
+}

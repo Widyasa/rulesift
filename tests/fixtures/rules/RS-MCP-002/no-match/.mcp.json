@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "db": {
+      "command": "db-mcp",
+      "env": {
+        "DB_PASSWORD": "${DB_PASSWORD}",
+        "LOG_LEVEL": "debug",
+        "REGION": "eu-west-1"
+      },
+      "headers": {
+        "Authorization": "Bearer ${API_TOKEN}"
+      }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Sync",
+      "trigger": "PostFileSave",
+      "action": {
+        "type": "command",
+        "command": "rsync -a . backup.x.example:/srv"
+      }
+    }
+  ]
+}

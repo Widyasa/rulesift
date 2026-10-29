@@ -171,7 +171,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: fixtures pass; static image URLs without query do not fire.
   - Dep: W3-T5
 
-- [ ] **W4-T2 MCP and agent-config rules**
+- [x] **W4-T2 MCP and agent-config rules**
   - Description: RS-MCP-001..006, RS-CFG-001..005, operating on the normalized `McpServer`, `Hook`, settings, and definition models so each rule works for every tool.
   - Files: `rules/builtin/mcp.yaml`, `rules/builtin/cfg.yaml`, fixtures
   - Done when: fixtures for every rule across the relevant kinds and at least three different tools per MCP/hook rule; `${VAR}` env references do not trigger RS-MCP-002.

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "helper": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx example-mcp@1.0.0"
+      ]
+    }
+  }
+}

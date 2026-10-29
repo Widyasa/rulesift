@@ -1,0 +1,3 @@
+[mcp_servers.helper]
+command = "sh"
+args = ["-c", "exec ./server"]

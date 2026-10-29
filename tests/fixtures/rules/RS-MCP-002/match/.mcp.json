@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "db": {
+      "command": "db-mcp",
+      "env": {
+        "DB_PASSWORD": "EXAMPLEq8Zt3Lw9Xv2Rk7"
+      }
+    }
+  }
+}
