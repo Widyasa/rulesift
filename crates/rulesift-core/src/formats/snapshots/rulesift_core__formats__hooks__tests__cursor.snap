@@ -1,0 +1,24 @@
+---
+source: crates/rulesift-core/src/formats/hooks.rs
+expression: "snap(Tool::Cursor, \"cursor/hooks.json\", true)"
+---
+{
+  "hooks": [
+    {
+      "tool": "cursor",
+      "event": "afterFileEdit",
+      "command": "./hooks/format.sh",
+      "pointer": "/hooks/afterFileEdit/0/command",
+      "line": 4
+    },
+    {
+      "tool": "cursor",
+      "event": "beforeShellExecution",
+      "matcher": "git",
+      "command": "./hooks/audit.sh",
+      "pointer": "/hooks/beforeShellExecution/0/command",
+      "line": 6
+    }
+  ],
+  "issues": []
+}

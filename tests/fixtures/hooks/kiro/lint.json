@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Lint on save",
+      "trigger": "PostFileSave",
+      "matcher": "\\.(ts|tsx)$",
+      "action": { "type": "command", "command": "npx eslint --fix" }
+    },
+    {
+      "name": "Review",
+      "trigger": "PostTaskComplete",
+      "action": { "type": "agent", "prompt": "Review the change." }
+    }
+  ]
+}

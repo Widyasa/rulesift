@@ -1,0 +1,17 @@
+---
+source: crates/rulesift-core/src/formats/hooks.rs
+expression: "snap(Tool::ClaudeCode, \"claude-code/hooks.json\", true)"
+---
+{
+  "hooks": [
+    {
+      "tool": "claude-code",
+      "event": "PostToolUse",
+      "matcher": "Write|Edit",
+      "command": "${CLAUDE_PLUGIN_ROOT}/scripts/format.sh",
+      "pointer": "/hooks/PostToolUse/0/hooks/0/command",
+      "line": 7
+    }
+  ],
+  "issues": []
+}
