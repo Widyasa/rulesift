@@ -39,5 +39,14 @@ First public release. The release date is set by the maintainer when the tag is 
 - Packaging: cargo-dist (shell, PowerShell, npm, Homebrew) and maturin
   (PyPI wheel).
 
+### Fixed
+
+Release-gate QA findings (#99–#109):
+
+- Finding fingerprints and absolute display paths are now relative to a
+  stable root (config directory, git work tree, or scanned directory), so
+  baselines match however and wherever a scan runs, and the test suite passes
+  in any checkout (#99, #101).
+
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0

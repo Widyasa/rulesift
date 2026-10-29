@@ -41,6 +41,13 @@ pub struct DiscoveryOptions {
     pub tools: Vec<Tool>,
     /// Skip files larger than this many KiB.
     pub max_file_size_kib: u64,
+    /// Stable root that fingerprints (and absolute display paths) are made
+    /// relative to, e.g. the config directory. `None` = the enclosing git
+    /// work tree of each scanned path, else the scanned directory itself.
+    pub anchor: Option<PathBuf>,
+    /// Directory that absolute display paths are shown relative to
+    /// (default: the anchor). The MCP server sets its root here.
+    pub display_base: Option<PathBuf>,
 }
 
 impl Default for DiscoveryOptions {
@@ -51,6 +58,8 @@ impl Default for DiscoveryOptions {
             kinds: Vec::new(),
             tools: Vec::new(),
             max_file_size_kib: 2048,
+            anchor: None,
+            display_base: None,
         }
     }
 }
@@ -64,6 +73,8 @@ impl DiscoveryOptions {
             kinds: c.kinds.clone(),
             tools: c.tools.clone(),
             max_file_size_kib: c.max_file_size_kib,
+            anchor: None,
+            display_base: None,
         }
     }
 }
@@ -75,6 +86,11 @@ pub struct DiscoveredFile {
     pub path: String,
     /// Path used for registry matching (relative to the scanned directory).
     pub match_path: String,
+    /// Path relative to the stable anchor (config dir, git work tree, or
+    /// scanned directory), `/` separated. Independent of the working
+    /// directory, of how the path was spelled on the command line, and of
+    /// where the repository is checked out; fingerprints are computed on it.
+    pub stable_path: String,
     /// Filesystem path to read.
     pub fs_path: PathBuf,
     /// Matched registry row.
@@ -185,8 +201,16 @@ pub fn discover(paths: &[PathBuf], opts: &DiscoveryOptions) -> Result<Discovery>
     let mut seen = BTreeSet::new();
     let max_bytes = opts.max_file_size_kib.saturating_mul(1024);
 
+    let mut anchors: Vec<PathBuf> = Vec::new();
     for given in paths {
         let meta = std::fs::metadata(given).map_err(|e| CoreError::io(given, e))?;
+        let anchor = match &opts.anchor {
+            Some(a) => std::fs::canonicalize(a).unwrap_or_else(|_| a.clone()),
+            None => default_anchor(given),
+        };
+        if !anchors.contains(&anchor) {
+            anchors.push(anchor.clone());
+        }
         if meta.is_file() {
             let disp = to_slash(given);
             match registry::match_explicit(given) {
@@ -198,8 +222,20 @@ pub fn discover(paths: &[PathBuf], opts: &DiscoveryOptions) -> Result<Discovery>
                     let skill_dir = (row.kind == FileKind::Skill)
                         .then(|| given.parent().map(to_slash).unwrap_or_default());
                     let mp = match_path_for_explicit(given, row).unwrap_or(name);
+                    // Outside a git work tree and without a configured anchor,
+                    // anchor an explicit file where its registry path starts
+                    // (`a/.cursor/rules/x.mdc` → `a`), as a directory walk would.
+                    let anchor = if opts.anchor.is_none() && !in_git_tree(&anchor) {
+                        anchor_for_match_path(given, &mp).unwrap_or(anchor)
+                    } else {
+                        anchor
+                    };
+                    if !anchors.contains(&anchor) {
+                        anchors.push(anchor.clone());
+                    }
                     push_file(
-                        &mut out, &mut seen, opts, max_bytes, given, disp, mp, row, skill_dir,
+                        &mut out, &mut seen, opts, max_bytes, &anchor, given, disp, mp, row,
+                        skill_dir,
                     );
                 }
                 Some(row) => out.warnings.push(Warning {
@@ -214,13 +250,97 @@ pub fn discover(paths: &[PathBuf], opts: &DiscoveryOptions) -> Result<Discovery>
             continue;
         }
         walk_dir(
-            given, opts, &include, &exclude, max_bytes, &mut out, &mut seen,
+            given, opts, &include, &exclude, max_bytes, &anchor, &mut out, &mut seen,
         )?;
+    }
+    // Absolute display paths are machine-specific (and end up in SARIF and
+    // PR comments); show them relative to the stable anchor instead.
+    if let Some(b) = &opts.display_base {
+        anchors.insert(0, std::fs::canonicalize(b).unwrap_or_else(|_| b.clone()));
+    }
+    for f in &mut out.files {
+        f.path = rel_display(&f.path, &anchors);
+        if let Some(d) = &mut f.skill_dir {
+            *d = rel_display(d, &anchors);
+        }
+    }
+    for w in &mut out.warnings {
+        w.path = rel_display(&w.path, &anchors);
     }
     out.files.sort_by(|a, b| a.path.cmp(&b.path));
     out.warnings.sort();
     out.warnings.dedup();
     Ok(out)
+}
+
+/// The default anchor of a scanned path: the enclosing git work tree (an
+/// ancestor containing `.git`), else the directory itself (or the parent
+/// directory of a file). Returned canonicalized.
+pub fn default_anchor(given: &Path) -> PathBuf {
+    let dir = if given.is_dir() {
+        given.to_path_buf()
+    } else {
+        given
+            .parent()
+            .filter(|p| !p.as_os_str().is_empty())
+            .map(Path::to_path_buf)
+            .unwrap_or_else(|| PathBuf::from("."))
+    };
+    let dir = std::fs::canonicalize(&dir).unwrap_or(dir);
+    dir.ancestors()
+        .find(|a| a.join(".git").exists())
+        .map(Path::to_path_buf)
+        .unwrap_or(dir)
+}
+
+fn in_git_tree(dir: &Path) -> bool {
+    dir.join(".git").exists()
+}
+
+/// The directory that `given` lies in once its `match_path` suffix is
+/// removed, e.g. `/r/.cursor/rules/x.mdc` with `.cursor/rules/x.mdc` → `/r`.
+fn anchor_for_match_path(given: &Path, match_path: &str) -> Option<PathBuf> {
+    let abs = absolute_keep_name(given)?;
+    let mut dir = abs.as_path();
+    for _ in match_path.split('/') {
+        dir = dir.parent()?;
+    }
+    abs.strip_prefix(dir)
+        .ok()
+        .filter(|r| to_slash(r) == match_path)
+        .map(|_| dir.to_path_buf())
+}
+
+/// Absolute path of `p` with its parent directories canonicalized but the
+/// last component kept as is (so an in-root symlink keeps its own name).
+fn absolute_keep_name(p: &Path) -> Option<PathBuf> {
+    let parent = p
+        .parent()
+        .filter(|x| !x.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    let name = p.file_name()?;
+    Some(std::fs::canonicalize(parent).ok()?.join(name))
+}
+
+/// `p` relative to the canonical `anchor` (`/` separated), if it lies inside.
+pub fn relative_to_anchor(p: &Path, anchor: &Path) -> Option<String> {
+    let abs = absolute_keep_name(p)?;
+    let rel = abs.strip_prefix(anchor).ok()?;
+    let s = to_slash(rel);
+    (!s.is_empty()).then_some(s)
+}
+
+/// Rewrite an absolute display path relative to the first anchor that
+/// contains it; relative display paths are kept as given.
+fn rel_display(path: &str, anchors: &[PathBuf]) -> String {
+    let p = Path::new(path);
+    if !p.is_absolute() {
+        return path.to_string();
+    }
+    anchors
+        .iter()
+        .find_map(|a| relative_to_anchor(p, a))
+        .unwrap_or_else(|| path.to_string())
 }
 
 fn match_path_for_explicit(p: &Path, row: &RegistryRow) -> Option<String> {
@@ -242,6 +362,7 @@ fn push_file(
     seen: &mut BTreeSet<PathBuf>,
     opts: &DiscoveryOptions,
     max_bytes: u64,
+    anchor: &Path,
     fs_path: &Path,
     path: String,
     match_path: String,
@@ -297,9 +418,11 @@ fn push_file(
             message: "file is not valid UTF-8; scanned lossily".into(),
         });
     }
+    let stable_path = relative_to_anchor(fs_path, anchor).unwrap_or_else(|| path.clone());
     out.files.push(DiscoveredFile {
         path,
         match_path,
+        stable_path,
         fs_path: fs_path.to_path_buf(),
         row,
         skill_dir,
@@ -313,12 +436,14 @@ pub fn is_binary(bytes: &[u8]) -> bool {
     bytes.iter().take(8192).any(|&b| b == 0)
 }
 
+#[allow(clippy::too_many_arguments)] // internal helper; grouping the args would only add noise
 fn walk_dir(
     root: &Path,
     opts: &DiscoveryOptions,
     include: &GlobSet,
     exclude: &GlobSet,
     max_bytes: u64,
+    anchor: &Path,
     out: &mut Discovery,
     seen: &mut BTreeSet<PathBuf>,
 ) -> Result<()> {
@@ -486,6 +611,7 @@ fn walk_dir(
             seen,
             opts,
             max_bytes,
+            anchor,
             fs_path,
             display_join(&base, rel),
             mrel,
@@ -542,7 +668,11 @@ mod tests {
     #[test]
     fn all_tools_classification_snapshot() {
         let root = all_tools();
-        let d = discover(std::slice::from_ref(&root), &DiscoveryOptions::default()).unwrap();
+        let opts = DiscoveryOptions {
+            anchor: Some(root.clone()),
+            ..Default::default()
+        };
+        let d = discover(std::slice::from_ref(&root), &opts).unwrap();
         let strip = to_slash(&root);
         insta::assert_snapshot!(listing(&d, &strip));
     }

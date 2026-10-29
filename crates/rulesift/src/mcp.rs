@@ -161,7 +161,8 @@ impl RuleSiftServer {
             Some(s) => Some(s.parse::<Severity>().map_err(err)?),
             None => None,
         };
-        let p = prepare(&self.global, &[path], &o).map_err(err)?;
+        let mut p = prepare(&self.global, &[path], &o).map_err(err)?;
+        p.opts.discovery.display_base = Some(self.root.clone());
         let mut r = rulesift_core::scan::scan(&p.rules, &p.opts)
             .map_err(err)?
             .report;

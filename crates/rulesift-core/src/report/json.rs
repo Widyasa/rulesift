@@ -56,6 +56,12 @@ mod tests {
             &ScanOptions {
                 paths: vec![repo(name)],
                 root: ".".into(),
+                // anchor at the fixture so paths and fingerprints do not
+                // depend on the checkout location (#99)
+                discovery: crate::discovery::DiscoveryOptions {
+                    anchor: Some(repo(name)),
+                    ..Default::default()
+                },
                 ..ScanOptions::default()
             },
         )

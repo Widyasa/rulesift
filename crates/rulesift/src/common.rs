@@ -10,6 +10,17 @@ use std::path::{Path, PathBuf};
 /// from `start`). Returns the config and the directory relative paths in it
 /// resolve against.
 pub fn load_config(g: &GlobalArgs, start: &Path) -> anyhow::Result<(Config, PathBuf)> {
+    let (cfg, base, _) = load_config_with_dir(g, start)?;
+    Ok((cfg, base))
+}
+
+/// Like [`load_config`], but also returns the canonical directory of the
+/// config file when one was found (the stable anchor for fingerprints and
+/// config-relative globs).
+pub fn load_config_with_dir(
+    g: &GlobalArgs,
+    start: &Path,
+) -> anyhow::Result<(Config, PathBuf, Option<PathBuf>)> {
     let env = std::env::var_os("RULESIFT_CONFIG").map(PathBuf::from);
     let (cfg, src) = config::load_resolved(g.config.as_deref(), env.as_deref(), start)?;
     let base = src
@@ -17,7 +28,15 @@ pub fn load_config(g: &GlobalArgs, start: &Path) -> anyhow::Result<(Config, Path
         .and_then(|p| p.parent())
         .map(Path::to_path_buf)
         .unwrap_or_default();
-    Ok((cfg, base))
+    let dir = src.path().map(|_| {
+        let d = if base.as_os_str().is_empty() {
+            PathBuf::from(".")
+        } else {
+            base.clone()
+        };
+        std::fs::canonicalize(&d).unwrap_or(d)
+    });
+    Ok((cfg, base, dir))
 }
 
 /// Load built-in rules plus config and command-line rule directories,

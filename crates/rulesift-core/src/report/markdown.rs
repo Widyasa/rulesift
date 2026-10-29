@@ -229,6 +229,10 @@ mod tests {
             &ScanOptions {
                 paths: vec![root.clone()],
                 root: ".".into(),
+                discovery: crate::discovery::DiscoveryOptions {
+                    anchor: Some(root.clone()),
+                    ..Default::default()
+                },
                 ..ScanOptions::default()
             },
         )

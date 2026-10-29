@@ -27,6 +27,8 @@ pub struct Analyzed {
     pub row: &'static RegistryRow,
     /// Path used for registry matching.
     pub match_path: String,
+    /// Stable (anchor-relative) path used for fingerprints; `None` = `doc.path`.
+    pub stable_path: Option<String>,
     /// Skill directory name, for files inside a skill.
     pub skill_dir: Option<String>,
     /// Frontmatter, if the file has one.
@@ -149,6 +151,7 @@ pub fn analyze(
         },
         row,
         match_path: match_path.to_string(),
+        stable_path: None,
         skill_dir: skill_dir.map(str::to_string),
         frontmatter: None,
         value: None,

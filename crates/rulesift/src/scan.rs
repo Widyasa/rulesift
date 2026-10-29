@@ -109,7 +109,7 @@ pub struct Prepared {
 /// Resolve config, rules, and options.
 pub fn prepare(g: &GlobalArgs, paths: &[PathBuf], o: &OutputArgs) -> anyhow::Result<Prepared> {
     let start = paths.first().cloned().unwrap_or_else(|| PathBuf::from("."));
-    let (cfg, base) = common::load_config(g, &start)?;
+    let (cfg, base, cfg_dir) = common::load_config_with_dir(g, &start)?;
     let rules = common::build_rules(g, &cfg, &base, &o.rules, &o.disable)?;
     let paths: Vec<PathBuf> = if paths.is_empty() {
         let cwd = std::env::current_dir().unwrap_or_default();
@@ -135,6 +135,16 @@ pub fn prepare(g: &GlobalArgs, paths: &[PathBuf], o: &OutputArgs) -> anyhow::Res
         }
     }
     let mut d = DiscoveryOptions::from_config(&cfg.scan);
+    // Anchor fingerprints at the config directory when every scanned path
+    // lies inside it; otherwise core falls back to the git work tree or the
+    // scanned directory.
+    d.anchor = cfg_dir.filter(|dir| {
+        paths.iter().all(|p| {
+            std::fs::canonicalize(p)
+                .map(|c| c.starts_with(dir))
+                .unwrap_or(false)
+        })
+    });
     d.include.extend(o.include.iter().cloned());
     d.exclude.extend(o.exclude.iter().cloned());
     if !o.kinds.is_empty() {

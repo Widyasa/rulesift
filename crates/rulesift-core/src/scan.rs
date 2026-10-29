@@ -10,7 +10,7 @@ use crate::model::{Breakdown, FileReport, Report, Tier, ToolInfo};
 use crate::rules::engine;
 use crate::rules::loader::RuleSet;
 use crate::score::{score_all, FileMeta};
-use crate::suppress::{fingerprint_all, Suppressor};
+use crate::suppress::{fingerprint, Suppressor};
 use std::path::PathBuf;
 
 /// Scan options.
@@ -47,7 +47,9 @@ pub fn analyze_file(f: &DiscoveredFile) -> Analyzed {
         .skill_dir
         .as_deref()
         .map(|d| d.trim_end_matches('/').rsplit('/').next().unwrap_or(d));
-    analyze(&f.path, &f.match_path, f.row, dir_name, &f.text)
+    let mut a = analyze(&f.path, &f.match_path, f.row, dir_name, &f.text);
+    a.stable_path = Some(f.stable_path.clone());
+    a
 }
 
 /// Run the pipeline over already analyzed files.
@@ -61,9 +63,17 @@ pub fn scan_analyzed(
     let mut meta = Vec::new();
     for a in &analyzed {
         let mut findings = engine::run(rules, a);
-        fingerprint_all(&mut findings);
+        // Fingerprints use the stable anchor-relative path, so baselines
+        // match however the scan was invoked and wherever the repo lives.
+        let stable = a.stable_path.as_deref().unwrap_or(&a.doc.path);
         for f in &mut findings {
-            if sup.matches(&f.rule_id, &f.path) || sup.matches(&f.rule_id, &a.match_path) {
+            f.fingerprint = fingerprint(&f.rule_id, stable, &f.evidence);
+        }
+        for f in &mut findings {
+            if sup.matches(&f.rule_id, &f.path)
+                || sup.matches(&f.rule_id, &a.match_path)
+                || sup.matches(&f.rule_id, stable)
+            {
                 f.suppressed = true;
             }
         }
