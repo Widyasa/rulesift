@@ -143,7 +143,7 @@ Legend: **Files** = files/modules touched. **Done when** = acceptance criteria. 
   - Done when: all built-in examples pass in CI; `show RS-EXEC-001` snapshot.
   - Dep: W3-T4
 
-- [ ] **W3-T6 Hidden-text and injection rules**
+- [x] **W3-T6 Hidden-text and injection rules**
   - Description: RS-HID-001..002, RS-INJ-001..004 (§8).
   - Files: `rules/builtin/hid.yaml`, `rules/builtin/inj.yaml`, `tests/fixtures/rules/RS-HID-*/`, `RS-INJ-*/`
   - Done when: one positive and one negative fixture per rule; INJ rules do not fire on code blocks; at least one fixture each for a non-Claude tool (e.g. `GEMINI.md`, `.kiro/steering`).

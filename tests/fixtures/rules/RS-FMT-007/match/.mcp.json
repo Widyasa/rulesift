@@ -1,0 +1,4 @@
+{
+  "mcpServers": {
+    "demo": {"command": "echo",}
+  }
