@@ -8,6 +8,8 @@
 
 The file contains bidirectional control characters, which can make text display differently from how it is read (Trojan Source).
 
+In JSON, TOML, and YAML agent files (MCP configs, hooks, settings, plugin manifests) the characters are also found when they are written as escape sequences such as `\u202E` inside a string value, because the agent sees them once it decodes the file.
+
 ## Why it matters
 
 Bidirectional controls reorder how text is displayed, so reviewers see something different from what the agent reads (Trojan Source).

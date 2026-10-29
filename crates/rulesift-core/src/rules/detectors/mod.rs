@@ -156,10 +156,14 @@ pub fn run(name: &str, a: &crate::analyze::Analyzed) -> Vec<Loc> {
         "skill_fields" => skill("RS-FMT-005"),
         "dialect_frontmatter" => issue_locs(&li, text, &a.dialect_issues),
         "config_format" => issue_locs(&li, text, &a.format_issues),
-        "unicode_tags" => hits(unicode::unicode_tags),
-        "bidi" => hits(unicode::bidi),
-        "zero_width" => hits(unicode::zero_width),
-        "invisible_format" => hits(unicode::invisible_format),
+        "unicode_tags" => with_escaped(a, hits(unicode::unicode_tags), unicode::unicode_tags),
+        "bidi" => with_escaped(a, hits(unicode::bidi), unicode::bidi),
+        "zero_width" => with_escaped(a, hits(unicode::zero_width), unicode::zero_width),
+        "invisible_format" => with_escaped(
+            a,
+            hits(unicode::invisible_format),
+            unicode::invisible_format,
+        ),
         "base64_payload" => base64::base64_payload(a),
         "hardcoded_secret" => secrets::hardcoded_secret(a),
         "exfil_url" => exfil_url::exfil_url(a),
@@ -196,4 +200,45 @@ fn unscannable(li: &crate::text::LineIndex, a: &crate::analyze::Analyzed) -> Vec
             .into(),
     );
     vec![l]
+}
+
+/// Add hits for hidden characters that only exist after decoding a string
+/// value, e.g. a JSON `\u202E` escape in `.mcp.json` (#104). Raw characters
+/// are already found in the file text; only string values whose decoded text
+/// is not a verbatim slice of the file are checked again.
+fn with_escaped(
+    a: &crate::analyze::Analyzed,
+    mut locs: Vec<Loc>,
+    f: fn(&str) -> Vec<Hit>,
+) -> Vec<Loc> {
+    let text = a.doc.text.as_str();
+    for seg in a
+        .doc
+        .segments
+        .iter()
+        .filter(|s| s.scope == crate::model::Scope::JsonString)
+    {
+        let verbatim = text
+            .get(seg.span.start..seg.span.end)
+            .is_some_and(|raw| raw.contains(seg.text.as_str()));
+        if verbatim {
+            continue;
+        }
+        for h in f(&seg.text) {
+            locs.push(Loc {
+                span: seg.span,
+                line: seg.line,
+                column: seg.column,
+                end_line: seg.end_line,
+                evidence: h.evidence,
+                decoded: h.decoded,
+                message: Some(format!(
+                    "{} They are written as escape sequences in a string value, so they are invisible in the file but present once the agent decodes it.",
+                    h.message
+                )),
+                synthetic: false,
+            });
+        }
+    }
+    locs
 }

@@ -63,6 +63,8 @@ Release-gate QA findings (#99–#109):
   the config is looked up from their common directory. The pre-commit hooks
   now scan the repository with its config (`pass_filenames: false`) instead
   of the changed file names, so excluded files never block a commit (#103).
+- RS-UNI-001 to RS-UNI-004 also find hidden characters written as `\uXXXX`
+  escapes in JSON, TOML, and YAML string values (#104).
 
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0

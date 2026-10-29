@@ -1,0 +1,9 @@
+name: docs
+version: 0.0.1
+schema: v1
+mcpServers:
+  - name: docs
+    command: node
+    args: ["server.js"]
+    env:
+      MODE: "ok\uFE00\uFE01\uFE02\uFE03\uFE04\uFE05\uFE06\uFE07"
