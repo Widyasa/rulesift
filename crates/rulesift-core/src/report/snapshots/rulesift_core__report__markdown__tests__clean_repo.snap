@@ -1,0 +1,13 @@
+---
+source: crates/rulesift-core/src/report/markdown.rs
+expression: md
+---
+<!-- rulesift:pr-comment -->
+### ✅ RuleSift: 0 files blocked, 0 to review
+
+Scanned 60 agent files: 0 block, 0 review, 0 info, 60 ok. Repo score **0** (OK).
+
+No agent file needs attention.
+
+---
+<sub>[RuleSift](https://github.com/Widyasa/rulesift) v0.0.0-test · offline scan, no code was executed · [How to suppress](https://github.com/Widyasa/rulesift/blob/master/docs/configuration.md#suppressions)</sub>

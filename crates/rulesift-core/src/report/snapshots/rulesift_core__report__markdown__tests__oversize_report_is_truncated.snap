@@ -1,0 +1,12 @@
+---
+source: crates/rulesift-core/src/report/markdown.rs
+expression: tail
+---
++ skills/s0548/SKILL.md: file — new agent file new agent file new agent file new agent file new agent file 
++ skills/s0549/SKILL.md: file — new agent file new agent file new agent file new agent file new agent file 
+```
+
+> **Note:** this comment was truncated at 60,000 characters. Run `rulesift scan` locally or see the JSON/SARIF report for the full list.
+
+---
+<sub>[RuleSift](https://github.com/Widyasa/rulesift) v0.0.0-test · offline scan, no code was executed · [How to suppress](https://github.com/Widyasa/rulesift/blob/master/docs/configuration.md#suppressions)</sub>
