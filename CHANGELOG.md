@@ -156,5 +156,16 @@ Release-gate QA findings on 7edbf51 (#145–#147):
 - docs: RS-EXEC-001 lists download-then-run (`curl … -o i.sh && bash i.sh`)
   under "Not flagged" and explains why (#149).
 
+Release-gate QA findings on b256f0f (#155, #156):
+
+- Ignore files no longer hide agent files that are not tracked in git
+  either (a copied third-party skill with its own `.ignore` or
+  `.gitignore`, a gitignored `.claude/settings.local.json`), inside a git
+  repository or not: `scan`, the working-tree `diff`, and MCP `scan_path`
+  find them with a second walk without ignore rules and scan them with a
+  warning. Only `exclude` skips files (by default `node_modules/**` and
+  `target/**`). An unreadable git index is reported with a warning instead
+  of silently falling back (#155).
+
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0
