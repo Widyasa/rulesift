@@ -142,6 +142,11 @@ Release-gate QA findings on 7edbf51 (#145–#147):
   tracked in git: `scan` and the working-tree `diff` (the Action's pull
   request mode) add every tracked file under the scanned path to the walk,
   so a PR cannot hide a changed agent file by also ignoring it (#145).
+- A git submodule at an agent location (`.claude/skills/evil`, a skill's
+  `scripts/`) fails closed with RS-FMT-008 in `scan` and in both `diff`
+  modes, whether or not it is checked out; other submodules are skipped
+  with a warning. `diff` now prints its discovery warnings like `scan`
+  (#146).
 
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0

@@ -22,6 +22,10 @@ A file at an agent-file location that RuleSift could not fully scan:
   pointing outside the repo hides a script the skill runs).
   Other directory symlinks (`vendor`, `node_modules`) are skipped with a
   warning;
+- it is a git submodule (gitlink) at such a location: content from another
+  repository, which a default CI checkout leaves empty while developers who
+  clone with `--recursive` get it. Submodules elsewhere (`vendor/lib`) are
+  skipped with a warning;
 - it contains NUL bytes. The file is still scanned as text, so other rules
   fire on its content too.
 
