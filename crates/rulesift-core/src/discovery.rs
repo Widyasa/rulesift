@@ -801,6 +801,26 @@ fn dangling_escapes(link: &Path, canon_root: &Path) -> bool {
     !norm.starts_with(canon_root)
 }
 
+/// Add the symlink at `p` (scan-root relative `rel`) to `listing`.
+fn add_symlink(listing: &mut Listing, rel: String, p: &Path, canon_root: &Path) {
+    match std::fs::canonicalize(p) {
+        Ok(target) if target.starts_with(canon_root) => {
+            if target.is_file() {
+                listing.files.insert(rel, p.to_path_buf());
+            }
+        }
+        // warned about later, once it is known whether it hides agent
+        // files (RS-FMT-008) or is merely skipped
+        Ok(target) => listing
+            .escaped
+            .push((rel, p.to_path_buf(), Some(target.is_dir()))),
+        Err(_) if dangling_escapes(p, canon_root) => {
+            listing.escaped.push((rel, p.to_path_buf(), None));
+        }
+        Err(_) => listing.broken.push(rel),
+    }
+}
+
 #[allow(clippy::too_many_arguments)] // internal helper; grouping the args would only add noise
 fn walk_dir(
     root: &Path,
@@ -871,26 +891,39 @@ fn walk_dir(
             continue;
         }
         if ft.is_symlink() {
-            match std::fs::canonicalize(p) {
-                Ok(target) if target.starts_with(&canon_root) => {
-                    if target.is_file() {
-                        listing.files.insert(rel, p.to_path_buf());
-                    }
-                }
-                // warned about below, once it is known whether it hides
-                // agent files (RS-FMT-008) or is merely skipped
-                Ok(target) => listing
-                    .escaped
-                    .push((rel, p.to_path_buf(), Some(target.is_dir()))),
-                Err(_) if dangling_escapes(p, &canon_root) => {
-                    listing.escaped.push((rel, p.to_path_buf(), None));
-                }
-                Err(_) => listing.broken.push(rel),
-            }
+            add_symlink(&mut listing, rel, p, &canon_root);
             continue;
         }
         if ft.is_file() {
             listing.files.insert(rel, p.to_path_buf());
+        }
+    }
+    // Ignore files (`.gitignore`, `.ignore`, `.git/info/exclude`) never
+    // drop a file tracked in git: agents load it whether or not it is
+    // ignored, so ignoring it must not hide it from the scan (#145).
+    if let Some((wd, tracked)) = crate::git::tracked(&canon_root) {
+        let mut known: BTreeSet<String> = listing.files.keys().cloned().collect();
+        known.extend(listing.escaped.iter().map(|e| e.0.clone()));
+        known.extend(listing.broken.iter().cloned());
+        for (path, submodule) in tracked {
+            let abs = wd.join(&path);
+            let Ok(r) = abs.strip_prefix(&canon_root) else {
+                continue;
+            };
+            let rel = to_slash(r);
+            if rel.is_empty() || submodule || known.contains(&rel) {
+                continue;
+            }
+            let p = root.join(r);
+            match std::fs::symlink_metadata(&p) {
+                Ok(m) if m.file_type().is_symlink() => {
+                    add_symlink(&mut listing, rel, &p, &canon_root);
+                }
+                Ok(m) if m.is_file() => {
+                    listing.files.insert(rel, p);
+                }
+                _ => {}
+            }
         }
     }
     // `rel` relative to the anchor (e.g. the config directory), so config

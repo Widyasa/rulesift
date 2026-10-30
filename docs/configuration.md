@@ -21,7 +21,7 @@ Unknown keys are an error.
 | Key | Default | Meaning |
 |---|---|---|
 | `paths` | `["."]` | What to scan when no paths are given on the command line |
-| `exclude` | `["node_modules/**", "target/**"]` | Globs to skip, matched relative to the directory of `rulesift.toml` (and to the scanned directory). They apply to walked files and to files passed explicitly on the command line |
+| `exclude` | `["node_modules/**", "target/**"]` | Globs to skip, matched relative to the directory of `rulesift.toml` (and to the scanned directory). They apply to walked files and to files passed explicitly on the command line. `.gitignore` and `.ignore` only skip untracked files: a file tracked in git is always scanned, so use `exclude` to skip one |
 | `kinds` | all | `skill`, `instructions`, `command`, `agent`, `mcp-config`, `hooks`, `settings`, `plugin` |
 | `tools` | `[]` (all) | Tool ids from [supported-tools.md](supported-tools.md), e.g. `["cursor", "gemini-cli"]` |
 | `max_file_size_kib` | `2048` | Larger agent files are not scanned and are reported as [RS-FMT-008](rules/RS-FMT-008.md) (critical); larger text files inside a skill directory (scripts, references) get RS-FMT-008 too; larger binary assets there (images, fonts, archives whose magic bytes match their extension) are skipped with a warning |
