@@ -318,12 +318,16 @@ impl GitRepo {
 
 /// Paths tracked in the index of the git work tree that contains `dir`:
 /// (canonical work tree, repo-relative paths with `true` for submodules).
-/// `None` outside a git work tree or if the index cannot be read.
-pub fn tracked(dir: &Path) -> Option<(PathBuf, Vec<(String, bool)>)> {
-    let repo = gix::discover(dir).ok()?;
-    let wd = repo.workdir()?.to_path_buf();
+/// `Ok(None)` outside a git work tree; `Err` if the index cannot be read.
+pub fn tracked(dir: &Path) -> std::result::Result<Option<Tracked>, String> {
+    let Ok(repo) = gix::discover(dir) else {
+        return Ok(None);
+    };
+    let Some(wd) = repo.workdir().map(Path::to_path_buf) else {
+        return Ok(None);
+    };
     let wd = std::fs::canonicalize(&wd).unwrap_or(wd);
-    let index = repo.index_or_empty().ok()?;
+    let index = repo.index_or_empty().map_err(|e| e.to_string())?;
     let out = index
         .entries()
         .iter()
@@ -335,8 +339,11 @@ pub fn tracked(dir: &Path) -> Option<(PathBuf, Vec<(String, bool)>)> {
             )
         })
         .collect();
-    Some((wd, out))
+    Ok(Some((wd, out)))
 }
+
+/// Canonical work tree and its tracked paths (`true` for submodules).
+pub type Tracked = (PathBuf, Vec<(String, bool)>);
 
 /// Where a symlink in a git tree points.
 enum Link {

@@ -871,6 +871,7 @@ fn walk_dir(
 
     // First pass: collect files and symlinks.
     let mut listing = Listing::default();
+    let mut links: Vec<(String, PathBuf)> = Vec::new();
     for item in walker {
         let entry = match item {
             Ok(e) => e,
@@ -895,7 +896,7 @@ fn walk_dir(
             continue;
         }
         if ft.is_symlink() {
-            add_symlink(&mut listing, rel, p, &canon_root);
+            links.push((rel, p.to_path_buf()));
             continue;
         }
         if ft.is_file() {
@@ -903,12 +904,78 @@ fn walk_dir(
         }
     }
     // Ignore files (`.gitignore`, `.ignore`, `.git/info/exclude`) never
-    // drop a file tracked in git: agents load it whether or not it is
-    // ignored, so ignoring it must not hide it from the scan (#145).
-    if let Some((wd, tracked)) = crate::git::tracked(&canon_root) {
-        let mut known: BTreeSet<String> = listing.files.keys().cloned().collect();
-        known.extend(listing.escaped.iter().map(|e| e.0.clone()));
-        known.extend(listing.broken.iter().cloned());
+    // hide an agent file, tracked or not, in a git repository or not:
+    // agents load it from disk whether or not it is ignored (#145, #155).
+    // A second walk without ignore rules finds the ignored files. Only
+    // `.git` and paths matched by `exclude` (by default `node_modules/**`
+    // and `target/**`) are left out: those are explicit configuration.
+    let mut known: BTreeSet<String> = listing.files.keys().cloned().collect();
+    known.extend(links.iter().map(|l| l.0.clone()));
+    let mut ignored: BTreeSet<String> = BTreeSet::new();
+    let excl_prefix = canon_root
+        .strip_prefix(anchor)
+        .map(to_slash)
+        .unwrap_or_default();
+    let (walk_root, walk_exclude) = (root.to_path_buf(), exclude.clone());
+    let unfiltered = ignore::WalkBuilder::new(root)
+        .standard_filters(false)
+        .follow_links(false)
+        .sort_by_file_path(|a, b| a.cmp(b))
+        .filter_entry(move |e| {
+            e.file_name() != ".git"
+                && !(e.depth() > 0
+                    && e.file_type().is_some_and(|t| t.is_dir())
+                    && e.path().strip_prefix(&walk_root).is_ok_and(|r| {
+                        let r = to_slash(r);
+                        matches_path_or_parent(&walk_exclude, &r)
+                            || matches_path_or_parent(
+                                &walk_exclude,
+                                &display_join(&excl_prefix, &r),
+                            )
+                    }))
+        })
+        .build();
+    for entry in unfiltered.flatten() {
+        let Some(ft) = entry.file_type() else {
+            continue;
+        };
+        let p = entry.path();
+        let Ok(r) = p.strip_prefix(root) else {
+            continue;
+        };
+        let rel = to_slash(r);
+        if rel.is_empty() || known.contains(&rel) || !(ft.is_symlink() || ft.is_file()) {
+            continue;
+        }
+        known.insert(rel.clone());
+        ignored.insert(rel.clone());
+        if ft.is_symlink() {
+            links.push((rel, p.to_path_buf()));
+        } else {
+            listing.files.insert(rel, p.to_path_buf());
+        }
+    }
+    // Files tracked in git are always scanned, also inside the directories
+    // left out above (#145); gitlinks are submodules (#146).
+    let tracked = match crate::git::tracked(&canon_root) {
+        Ok(t) => t,
+        Err(e) => {
+            // ignored files are found without the index; git submodules
+            // (empty directories when not checked out) are not
+            out.warnings.push(Warning {
+                path: if base.is_empty() {
+                    ".".into()
+                } else {
+                    base.clone()
+                },
+                message: format!(
+                    "cannot read the git index ({e}): git submodules are not detected"
+                ),
+            });
+            None
+        }
+    };
+    if let Some((wd, tracked)) = tracked {
         for (path, submodule) in tracked {
             let abs = wd.join(&path);
             let Ok(r) = abs.strip_prefix(&canon_root) else {
@@ -925,15 +992,22 @@ fn walk_dir(
             }
             match std::fs::symlink_metadata(&p) {
                 Ok(m) if m.file_type().is_symlink() => {
-                    add_symlink(&mut listing, rel, &p, &canon_root);
+                    known.insert(rel.clone());
+                    links.push((rel, p));
                 }
                 Ok(m) if m.is_file() => {
+                    known.insert(rel.clone());
                     listing.files.insert(rel, p);
                 }
                 _ => {}
             }
         }
     }
+    for (rel, p) in links {
+        add_symlink(&mut listing, rel, &p, &canon_root);
+    }
+    let ignored: BTreeSet<String> = ignored.iter().map(|r| display_join(&base, r)).collect();
+    let first_new = out.files.len();
     // `rel` relative to the anchor (e.g. the config directory), so config
     // globs like `tests/fixtures/**` also apply when a sub-directory is
     // scanned (#103).
@@ -954,6 +1028,15 @@ fn walk_dir(
         anchor,
     };
     ctx.run(listing, out, seen);
+    let notes: Vec<Warning> = out.files[first_new.min(out.files.len())..]
+        .iter()
+        .filter(|f| ignored.contains(&f.path))
+        .map(|f| Warning {
+            path: f.path.clone(),
+            message: "ignored by an ignore file (.gitignore, .ignore, ...); scanned anyway: agents still load it".into(),
+        })
+        .collect();
+    out.warnings.extend(notes);
     Ok(())
 }
 
@@ -1579,14 +1662,26 @@ mod tests {
     }
 
     #[test]
-    fn gitignore_respected_and_hidden_included() {
+    fn ignored_agent_files_are_scanned_and_hidden_included() {
+        // ignore files never hide an agent file, outside git too (#155);
+        // only `exclude` skips one
         let t = tempfile::tempdir().unwrap();
         write(t.path(), ".gitignore", b"ignored/\n");
         write(t.path(), "ignored/AGENTS.md", b"x");
         write(t.path(), ".kiro/steering/a.md", b"y");
-        let d = discover(&[t.path().to_path_buf()], &DiscoveryOptions::default()).unwrap();
+        write(t.path(), "node_modules/p/AGENTS.md", b"z");
+        let opts = DiscoveryOptions {
+            exclude: vec!["node_modules/**".into()],
+            ..Default::default()
+        };
+        let d = discover(&[t.path().to_path_buf()], &opts).unwrap();
         let names: Vec<_> = d.files.iter().map(|f| f.match_path.as_str()).collect();
-        assert_eq!(names, vec![".kiro/steering/a.md"]);
+        assert_eq!(names, vec![".kiro/steering/a.md", "ignored/AGENTS.md"]);
+        assert!(d
+            .warnings
+            .iter()
+            .any(|w| w.path.ends_with("ignored/AGENTS.md")
+                && w.message.starts_with("ignored by an ignore file")));
     }
 
     #[test]
