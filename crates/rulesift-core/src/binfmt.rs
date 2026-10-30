@@ -238,11 +238,13 @@ pub(crate) fn identify(path: &Path, b: &[u8], complete: bool) -> Option<&'static
         .map(|(name, _, _)| *name)
 }
 
-/// Printable ASCII text of a binary file, same length and line structure
-/// (every other byte becomes a space), so rules can still check text hidden
-/// in it, e.g. a script in a PNG text chunk.
+/// Printable ASCII text of a binary file, same line structure (every other
+/// byte becomes a space), so rules can still check text hidden in it, e.g. a
+/// script in a PNG text chunk. NUL bytes are dropped, as bash drops them
+/// from script input: `cu\0rl` is read as `curl` (#147).
 pub(crate) fn printable_text(b: &[u8]) -> String {
     b.iter()
+        .filter(|&&c| c != 0)
         .map(|&c| match c {
             b'\t' | b'\n' | b'\r' | 0x20..=0x7E => c as char,
             _ => ' ',
@@ -341,7 +343,9 @@ pub(crate) mod tests {
 
     #[test]
     fn printable_text_keeps_lines() {
-        let t = printable_text(b"\x89PNG\r\n\x00a|b\n\xff");
+        let t = printable_text(b"\x89PNG\r\n\x01a|b\n\xff");
         assert_eq!(t, " PNG\r\n a|b\n ");
+        // NUL bytes are dropped, as bash does (#147)
+        assert_eq!(printable_text(b"cu\0rl x | ba\0sh\n"), "curl x | bash\n");
     }
 }
