@@ -347,7 +347,8 @@
             "allowed_tools",
             "always_apply",
             "instructions",
-            "lock"
+            "lock",
+            "policy"
           ]
         },
         "name": {
@@ -371,7 +372,9 @@
           "enum": [
             "RS-LOCK-001",
             "RS-LOCK-002",
-            "RS-LOCK-003"
+            "RS-LOCK-003",
+            "RS-LOCK-004",
+            "RS-LOCK-005"
           ]
         },
         "path": {

@@ -456,7 +456,8 @@ pub struct Change {
     /// `+`, `-`, `~`, or `!`.
     pub op: ChangeOp,
     /// What changed: `file`, `mcp_server`, `hook`, `permission`,
-    /// `allowed_tools`, `always_apply`, `instructions`, or `lock`.
+    /// `allowed_tools`, `always_apply`, `instructions`, `lock`, or `policy`
+    /// (a change to `rulesift.toml`, `rulesift.lock`, or custom rules, #160).
     pub what: String,
     /// Name of the item (server name, hook event, permission rule), if any.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -478,7 +479,9 @@ pub struct LockStatus {
 /// One lockfile mismatch.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct LockViolation {
-    /// `RS-LOCK-001` changed, `-002` new and unlocked, `-003` missing.
+    /// `RS-LOCK-001` changed, `-002` new and unlocked, `-003` missing;
+    /// in `diff`, `-004` policy weakened and `-005` policy or lock changed
+    /// (review only) (#160).
     pub rule_id: String,
     /// File or skill path.
     pub path: String,

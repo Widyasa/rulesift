@@ -29,6 +29,12 @@ Tools (all read-only and offline; each carries `readOnlyHint: true` and `openWor
 The server resolves paths inside its working directory and rejects anything
 that escapes with `..`.
 
+`scan_path` uses the `rulesift.toml` of the server's working directory (or
+above it), never one inside the scanned path, so a skill you are vetting
+cannot bring its own policy. `diff_refs` uses the base revision's
+`rulesift.toml` and `rulesift.lock`, like `rulesift diff`, and reports
+changes to them as RS-LOCK-004/005 (see docs/configuration.md, #160).
+
 To tell your agent to use RuleSift, add a short marked block to its
 instruction file:
 

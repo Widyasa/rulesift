@@ -183,6 +183,21 @@ Release-gate QA findings on cc716fb (#160, #161):
   are files tracked in git. A symlink at an agent location into an
   excluded path or a dependency directory (installed or not) fails closed
   with RS-FMT-008 (#161).
+- A pull request can no longer switch the gate off with its own
+  `rulesift.toml` (`exclude`, `include`, `kinds`, `tools`, `[rules] disable`,
+  `severity_override`, `[score]`, `[[suppress]]`, `[policy]`) or by
+  regenerating `rulesift.lock`: `rulesift diff` and MCP `diff_refs` now use
+  the base revision's `rulesift.toml` and `rulesift.lock`. Changes to them
+  (and to custom rule files) are reported as new lock findings: RS-LOCK-004
+  "RuleSift policy weakened" (high, exit 1) and RS-LOCK-005 "RuleSift
+  policy or lock changed" (review note; e.g. a lock that approves the pull
+  request's own changes). The PR comment says when lock or policy
+  violations fail the check, and JSON `changes` use `what: "policy"` for
+  them. Every agent file skipped by `exclude`, `include`, `kinds`, or
+  `tools` now gets a `skipped by config` warning (the default excludes stay
+  silent). MCP `scan_path` uses the server root's config, never one inside
+  the scanned path. docs/ci.md recommends CODEOWNERS for the policy files;
+  docs/configuration.md documents which config each mode uses (#160).
 
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0

@@ -51,6 +51,31 @@ Inputs:
 
 Outputs: `exit-code`, `sarif-file`, `markdown-file`.
 
+### Protect the policy files
+
+In pull request mode the action checks a change with the **base** revision's
+`rulesift.toml` and `rulesift.lock`, so a pull request cannot switch the
+gate off by editing them (#160). Changes to them are still reported:
+[RS-LOCK-004](rules/RS-LOCK-004.md) fails the check when the policy is
+weakened (more `exclude`, `[rules] disable`, `[[suppress]]`, higher
+`[score]` thresholds, a dropped lock entry, ...);
+[RS-LOCK-005](rules/RS-LOCK-005.md) is a review note for other changes, such
+as a lock that approves the pull request's own changes. Make a maintainer
+approve such changes with CODEOWNERS and branch protection ("Require review
+from Code Owners"):
+
+```text
+# .github/CODEOWNERS
+/rulesift.toml        @your-org/security
+**/rulesift.toml      @your-org/security
+/rulesift.lock        @your-org/security
+/.rulesift/           @your-org/security   # your [rules] extra_dirs
+/.github/workflows/   @your-org/security
+```
+
+Do not pass `--config` (via `args`) or set `RULESIFT_CONFIG` to a file
+inside the checkout: that file comes from the pull request.
+
 The action also runs on PRs from forks. There the `GITHUB_TOKEN` is
 read-only, so the comment step only logs a warning. The report is always in
 the job summary.
