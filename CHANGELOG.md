@@ -153,6 +153,8 @@ Release-gate QA findings on 7edbf51 (#145–#147):
   PNG header glued onto a large script fails closed. The printable text
   checked in skipped binaries now drops NUL bytes as bash does, so a
   NUL-split command in a PNG text chunk is found (#147).
+- docs: RS-EXEC-001 lists download-then-run (`curl … -o i.sh && bash i.sh`)
+  under "Not flagged" and explains why (#149).
 
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0
