@@ -30,6 +30,10 @@ A file at an agent-file location that RuleSift could not fully scan:
   resolves into a git submodule placed elsewhere, such as
   `.claude/skills/evil -> ../../vendor/evil` (#156). A symlink into a
   submodule from anywhere else is skipped with a warning;
+- it is a symlink at such a location into a path RuleSift does not scan: a
+  path matched by `exclude`, or a dependency directory such as
+  `node_modules` (also when it is not installed yet), e.g.
+  `.claude/skills/docs -> ../../node_modules/pkg/skills` (#161);
 - it contains NUL bytes. The file is still scanned as text, so other rules
   fire on its content too.
 

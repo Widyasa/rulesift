@@ -778,6 +778,14 @@ pub struct Listing {
     /// Symlinks that resolve into a git submodule (relative path, path):
     /// what they point to is content from another repository (#156).
     pub submodule_links: Vec<(String, PathBuf)>,
+    /// Symlinks to directories, or to targets that do not exist, inside
+    /// the root (relative path, path, relative target, whether the target
+    /// is a directory if known): what they point to is scanned where it
+    /// lives, unless that is a path RuleSift does not scan (#161).
+    pub inner_links: Vec<(String, PathBuf, String, Option<bool>)>,
+    /// Directories the walk did not enter (dependency directories such as
+    /// a nested, ignored `node_modules`, #161).
+    pub unwalked: Vec<String>,
 }
 
 /// Whether the scan-root relative path `rel` is a submodule in `subs` or
@@ -841,6 +849,12 @@ fn add_symlink(listing: &mut Listing, rel: String, p: &Path, canon_root: &Path, 
         Ok(target) if target.starts_with(canon_root) => {
             if target.is_file() {
                 listing.files.insert(rel, p.to_path_buf());
+            } else if target.is_dir() {
+                if let Ok(t) = target.strip_prefix(canon_root) {
+                    listing
+                        .inner_links
+                        .push((rel, p.to_path_buf(), to_slash(t), Some(true)));
+                }
             }
         }
         // warned about later, once it is known whether it hides agent
@@ -851,7 +865,17 @@ fn add_symlink(listing: &mut Listing, rel: String, p: &Path, canon_root: &Path, 
         Err(_) if dangling_escapes(p, canon_root) => {
             listing.escaped.push((rel, p.to_path_buf(), None));
         }
-        Err(_) => listing.broken.push(rel),
+        Err(_) => {
+            if let Some(t) = lexical
+                .as_deref()
+                .and_then(|t| t.strip_prefix(canon_root).ok())
+            {
+                listing
+                    .inner_links
+                    .push((rel.clone(), p.to_path_buf(), to_slash(t), None));
+            }
+            listing.broken.push(rel)
+        }
     }
 }
 
@@ -947,22 +971,46 @@ fn walk_dir(
         .map(to_slash)
         .unwrap_or_default();
     let (walk_root, walk_exclude) = (root.to_path_buf(), exclude.clone());
+    let walked = std::sync::Arc::new(known.clone());
+    let unwalked = std::sync::Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+    let unwalked_w = unwalked.clone();
     let unfiltered = ignore::WalkBuilder::new(root)
         .standard_filters(false)
         .follow_links(false)
         .sort_by_file_path(|a, b| a.cmp(b))
         .filter_entry(move |e| {
-            e.file_name() != ".git"
-                && !(e.depth() > 0
-                    && e.file_type().is_some_and(|t| t.is_dir())
-                    && e.path().strip_prefix(&walk_root).is_ok_and(|r| {
-                        let r = to_slash(r);
-                        matches_path_or_parent(&walk_exclude, &r)
-                            || matches_path_or_parent(
-                                &walk_exclude,
-                                &display_join(&excl_prefix, &r),
-                            )
-                    }))
+            if e.file_name() == ".git" {
+                return false;
+            }
+            if e.depth() == 0 || !e.file_type().is_some_and(|t| t.is_dir()) {
+                return true;
+            }
+            let Ok(r) = e.path().strip_prefix(&walk_root) else {
+                return true;
+            };
+            let r = to_slash(r);
+            if matches_path_or_parent(&walk_exclude, &r)
+                || matches_path_or_parent(&walk_exclude, &display_join(&excl_prefix, &r))
+            {
+                return false;
+            }
+            // An ignored dependency directory (e.g. `packages/ui/node_modules`)
+            // is not entered: agents do not load agent files from there,
+            // and third-party package docs would fail the scan (#161).
+            if is_dependency_dir(&walk_root, &r) {
+                let under = format!("{r}/");
+                let seen = walked
+                    .range(under.clone()..)
+                    .next()
+                    .is_some_and(|k| k.starts_with(&under));
+                if !seen {
+                    if let Ok(mut u) = unwalked_w.lock() {
+                        u.push(r);
+                    }
+                }
+                return false;
+            }
+            true
         })
         .build();
     for entry in unfiltered.flatten() {
@@ -1033,6 +1081,7 @@ fn walk_dir(
             }
         }
     }
+    listing.unwalked = unwalked.lock().map(|u| u.clone()).unwrap_or_default();
     let subs: Vec<String> = listing.submodules.iter().map(|s| s.0.clone()).collect();
     for (rel, p) in links {
         add_symlink(&mut listing, rel, &p, &canon_root, &subs);
@@ -1071,6 +1120,34 @@ fn walk_dir(
     Ok(())
 }
 
+/// Directory names the walk for ignored files does not enter (#161).
+const DEPENDENCY_DIRS: &[&str] = &["node_modules"];
+
+/// Whether the directory at root-relative `rel` is a dependency directory
+/// the walk for ignored files skips: named like one, and not inside an
+/// agent location (no hidden directory such as `.claude` above it, and no
+/// `SKILL.md` in it or in a directory above it).
+fn is_dependency_dir(root: &Path, rel: &str) -> bool {
+    let parts: Vec<&str> = rel.split('/').collect();
+    let Some((name, parents)) = parts.split_last() else {
+        return false;
+    };
+    if !DEPENDENCY_DIRS.contains(name) || parents.iter().any(|p| p.starts_with('.')) {
+        return false;
+    }
+    if root.join("SKILL.md").exists() {
+        return false;
+    }
+    let mut dir = root.to_path_buf();
+    for p in &parts {
+        dir.push(p);
+        if dir.join("SKILL.md").exists() {
+            return false;
+        }
+    }
+    true
+}
+
 /// What a path that is not scanned in place stands for.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Linked {
@@ -1080,6 +1157,8 @@ enum Linked {
     Submodule,
     /// A symlink into a git submodule.
     IntoSubmodule,
+    /// A symlink into a path that is not scanned (#161).
+    IntoUnscanned,
 }
 
 /// Discover agent files in a [`Listing`] collected by the caller, read
@@ -1198,7 +1277,34 @@ impl Classify<'_> {
             (None, rel.to_string())
         };
 
-        for rel in &listing.broken {
+        // A symlink at an agent location into a path RuleSift does not scan
+        // (`exclude`, a dependency directory such as `node_modules`) hides
+        // what the agent loads through it: it fails closed (#161).
+        let unscanned = |t: &str| {
+            excluded(t)
+                || listing
+                    .unwalked
+                    .iter()
+                    .any(|u| t == u || t.starts_with(&format!("{u}/")))
+                || {
+                    let mut cur = String::new();
+                    t.split('/').any(|c| {
+                        cur = display_join(&cur, c);
+                        is_dependency_dir(root, &cur)
+                    })
+                }
+        };
+        let into_unscanned: Vec<(String, PathBuf, Option<bool>)> = listing
+            .inner_links
+            .iter()
+            .filter(|l| unscanned(&l.2))
+            .map(|l| (l.0.clone(), l.1.clone(), l.3))
+            .collect();
+        for rel in listing
+            .broken
+            .iter()
+            .filter(|r| !into_unscanned.iter().any(|l| &l.0 == *r))
+        {
             out.warnings.push(Warning {
                 path: display_join(base, rel),
                 message: "skipped: broken symlink".into(),
@@ -1307,6 +1413,11 @@ impl Classify<'_> {
                     .submodule_links
                     .into_iter()
                     .map(|(r, p)| (r, p, None, Linked::IntoSubmodule)),
+            )
+            .chain(
+                into_unscanned
+                    .into_iter()
+                    .map(|(r, p, d)| (r, p, d, Linked::IntoUnscanned)),
             );
         for (rel, fs_path, is_dir, kind) in linked {
             let as_file = || {
@@ -1343,6 +1454,8 @@ impl Classify<'_> {
                 "git submodule: content from another repository"
             } else if kind == Linked::IntoSubmodule {
                 "symlink into a git submodule: content from another repository"
+            } else if kind == Linked::IntoUnscanned {
+                "symlink into a path RuleSift does not scan (exclude or a dependency directory such as node_modules)"
             } else if is_dir == Some(true) {
                 "directory symlink points outside the scan root"
             } else {
@@ -1350,6 +1463,10 @@ impl Classify<'_> {
             };
             let path = display_join(base, &rel);
             let Some(row) = row else {
+                if kind == Linked::IntoUnscanned {
+                    // elsewhere such links are common (`node_modules/.bin`)
+                    continue;
+                }
                 out.warnings.push(Warning {
                     path,
                     message: if kind == Linked::Submodule {

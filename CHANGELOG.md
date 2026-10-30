@@ -172,5 +172,17 @@ Release-gate QA findings on b256f0f (#155, #156):
   `diff` modes, whether or not the submodule is checked out; a symlink into
   a submodule from elsewhere is skipped with a warning (#156).
 
+Release-gate QA findings on cc716fb (#160, #161):
+
+- Ignored `node_modules` directories at any depth (a monorepo's
+  `packages/*/node_modules` after `npm ci`) are no longer walked, so
+  third-party package docs that look like agent files (`SKILL.md`,
+  `AGENTS.md`) no longer fail the scan; this was a side effect of #158.
+  A `node_modules` inside an agent location (below `.claude` and other
+  hidden directories, or in a skill directory) is still scanned, and so
+  are files tracked in git. A symlink at an agent location into an
+  excluded path or a dependency directory (installed or not) fails closed
+  with RS-FMT-008 (#161).
+
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0

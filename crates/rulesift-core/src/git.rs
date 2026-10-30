@@ -157,8 +157,14 @@ impl GitRepo {
                             cur = (t, next.clone());
                             continue;
                         } else if dirs.contains(&t) {
-                            // a directory inside the root is scanned where it is
+                            // a directory inside the root is scanned where it
+                            // is, unless that is not scanned (#161)
+                            listing
+                                .inner_links
+                                .push((p.clone(), root.join(p), t, Some(true)));
                             resolved = Some(Err(true));
+                        } else {
+                            listing.inner_links.push((p.clone(), root.join(p), t, None));
                         }
                     }
                     Link::Outside(abs) => {
