@@ -36,12 +36,15 @@ Any other file there is skipped with a warning only when it is confidently a
 real binary format: its magic bytes and its structure check out (PNG chunks
 with valid CRCs ending in `IEND`, GIF/JPEG/PDF trailers, a ZIP end record, a
 TrueType/OpenType table directory, WOFF/RIFF lengths), or, for formats
-without a structure check (gzip, tar, ICO, …) and for files too large to
-read in full, its magic bytes match its extension. Its printable text is
-still checked by the other rules, so a script hidden in a PNG text chunk is
-found. Everything else, such as a script padded with NUL bytes or a PNG
-header glued onto a script (`bash logo.png` still runs it), is scanned as
-text and reported as RS-FMT-008 (#136). An unreadable file there always gets
+without a structure check (gzip, tar, ICO, …), its magic bytes match its
+extension. Binaries larger than `max_file_size_kib` are still read in full
+for this check, up to 64 MiB; larger ones get RS-FMT-008 (#147). The
+printable text of a skipped binary is still checked by the other rules, with
+NUL bytes removed as bash removes them, so a script hidden in a PNG text
+chunk is found even when NUL bytes split its commands (`cu\0rl … | ba\0sh`).
+Everything else, such as a script padded with NUL bytes or a PNG header
+glued onto a script (`bash logo.png` still runs it), is scanned as text and
+reported as RS-FMT-008 (#136). An unreadable file there always gets
 RS-FMT-008.
 
 UTF-16 files (with a BOM, or plain ASCII text saved as UTF-16) are decoded

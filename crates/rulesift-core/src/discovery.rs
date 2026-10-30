@@ -376,6 +376,10 @@ fn match_path_for_explicit(p: &Path, row: &RegistryRow) -> Option<String> {
         .find(|s| registry::match_path(s, Origin::Explicit).map(|r| r.id) == Some(row.id))
 }
 
+/// Largest binary in a skill directory that is read to check its structure;
+/// larger ones fail closed with RS-FMT-008 (#147).
+const MAX_BINARY_BYTES: u64 = 64 * 1024 * 1024;
+
 #[allow(clippy::too_many_arguments)] // internal helper; grouping the args would only add noise
 fn push_file(
     reader: &dyn Reader,
@@ -420,34 +424,31 @@ fn push_file(
         binary: None,
     };
     let size = reader.len(fs_path).unwrap_or(0);
-    if size > max_bytes {
+    // A large binary in a skill directory is read in full (up to a hard cap)
+    // so its structure can be checked: magic bytes and extension alone do
+    // not make a file a real binary, and bash runs the text after a PNG
+    // header (#147).
+    let large_binary = |head: &[u8]| {
+        auxiliary
+            && size <= MAX_BINARY_BYTES
+            && !aux_is_text(fs_path, head)
+            && crate::binfmt::identify(fs_path, head, false).is_some()
+    };
+    if size > max_bytes && !large_binary(&reader.head(fs_path)) {
         let message = format!(
             "file is {} KiB, larger than max_file_size_kib = {}",
             size.div_ceil(1024),
             opts.max_file_size_kib
         );
-        let head = reader.head(fs_path);
-        // too large to check its structure: a real binary needs magic bytes
-        // that match its extension (#136)
-        if auxiliary
-            && !aux_is_text(fs_path, &head)
-            && crate::binfmt::identify(fs_path, &head, false).is_some()
-        {
-            out.warnings.push(Warning {
-                path: file.path,
-                message: format!("skipped: {message}"),
-            });
-        } else {
-            out.warnings.push(Warning {
-                path: file.path.clone(),
-                message: format!("not scanned (RS-FMT-008): {message}"),
-            });
-            file.unscannable = Some(format!(
-                "file is larger than max_file_size_kib ({} KiB)",
-                opts.max_file_size_kib
-            ));
-            out.files.push(file);
-        }
+        out.warnings.push(Warning {
+            path: file.path.clone(),
+            message: format!("not scanned (RS-FMT-008): {message}"),
+        });
+        file.unscannable = Some(format!(
+            "file is larger than max_file_size_kib ({} KiB)",
+            opts.max_file_size_kib
+        ));
+        out.files.push(file);
         return;
     }
     let bytes = match reader.read(fs_path) {
@@ -1344,6 +1345,7 @@ mod tests {
             names,
             vec![
                 ".claude/skills/s/SKILL.md",
+                ".claude/skills/s/data.gz",
                 ".claude/skills/s/run.sh",
                 "AGENTS.md",
                 "GEMINI.md"
@@ -1364,9 +1366,12 @@ mod tests {
             .files
             .iter()
             .any(|f| f.match_path.ends_with("run.sh") && f.unscannable.is_some()));
-        // a binary skill data file is skipped with a warning only
-        assert!(d.warnings.iter().any(|w| w.path.ends_with("data.gz")
-            && w.message == "skipped: file is 3 KiB, larger than max_file_size_kib = 2"));
+        // a binary skill data file is read in full to identify it, then
+        // skipped with a warning only (#147)
+        assert!(d
+            .warnings
+            .iter()
+            .any(|w| w.path.ends_with("data.gz") && w.message == "skipped: binary file (gzip)"));
         assert!(d
             .warnings
             .iter()

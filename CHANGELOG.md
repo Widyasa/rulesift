@@ -147,6 +147,12 @@ Release-gate QA findings on 7edbf51 (#145–#147):
   modes, whether or not it is checked out; other submodules are skipped
   with a warning. `diff` now prints its discovery warnings like `scan`
   (#146).
+- A binary in a skill directory larger than `max_file_size_kib` is no longer
+  skipped on magic bytes and extension alone: it is read in full (up to
+  64 MiB, above that RS-FMT-008) and must pass the structure check, so a
+  PNG header glued onto a large script fails closed. The printable text
+  checked in skipped binaries now drops NUL bytes as bash does, so a
+  NUL-split command in a PNG text chunk is found (#147).
 
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0
