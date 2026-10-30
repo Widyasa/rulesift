@@ -775,15 +775,33 @@ pub struct Listing {
     /// Git submodules (gitlinks): content from another repository, which a
     /// CI checkout usually leaves empty (relative path, path) (#146).
     pub submodules: Vec<(String, PathBuf)>,
+    /// Symlinks that resolve into a git submodule (relative path, path):
+    /// what they point to is content from another repository (#156).
+    pub submodule_links: Vec<(String, PathBuf)>,
+}
+
+/// Whether the scan-root relative path `rel` is a submodule in `subs` or
+/// lies inside one.
+pub(crate) fn in_submodule(rel: &str, subs: &[String]) -> bool {
+    subs.iter().any(|s| {
+        rel == s
+            || rel
+                .strip_prefix(s.as_str())
+                .is_some_and(|r| r.starts_with('/'))
+    })
 }
 
 /// Whether a symlink whose target does not exist points outside `root`
 /// (judged by its link text). A dangling link to e.g. `/home/u/evil.md` may
 /// still resolve on the machine of the agent that loads it.
 fn dangling_escapes(link: &Path, canon_root: &Path) -> bool {
-    let Ok(t) = std::fs::read_link(link) else {
-        return false;
-    };
+    lexical_target(link).is_some_and(|t| !t.starts_with(canon_root))
+}
+
+/// Where the symlink at `link` points, judged by its link text (its target
+/// need not exist).
+fn lexical_target(link: &Path) -> Option<PathBuf> {
+    let t = std::fs::read_link(link).ok()?;
     let full = if t.is_absolute() {
         t
     } else {
@@ -802,12 +820,24 @@ fn dangling_escapes(link: &Path, canon_root: &Path) -> bool {
             other => norm.push(other),
         }
     }
-    !norm.starts_with(canon_root)
+    Some(norm)
 }
 
 /// Add the symlink at `p` (scan-root relative `rel`) to `listing`.
-fn add_symlink(listing: &mut Listing, rel: String, p: &Path, canon_root: &Path) {
-    match std::fs::canonicalize(p) {
+fn add_symlink(listing: &mut Listing, rel: String, p: &Path, canon_root: &Path, subs: &[String]) {
+    // A symlink into a git submodule shows content from another repository,
+    // which a CI checkout usually leaves empty (#156).
+    let into_sub = |t: &Path| {
+        t.strip_prefix(canon_root)
+            .is_ok_and(|r| in_submodule(&to_slash(r), subs))
+    };
+    let target = std::fs::canonicalize(p);
+    let lexical = lexical_target(p);
+    if target.as_deref().is_ok_and(into_sub) || lexical.as_deref().is_some_and(into_sub) {
+        listing.submodule_links.push((rel, p.to_path_buf()));
+        return;
+    }
+    match target {
         Ok(target) if target.starts_with(canon_root) => {
             if target.is_file() {
                 listing.files.insert(rel, p.to_path_buf());
@@ -1003,8 +1033,9 @@ fn walk_dir(
             }
         }
     }
+    let subs: Vec<String> = listing.submodules.iter().map(|s| s.0.clone()).collect();
     for (rel, p) in links {
-        add_symlink(&mut listing, rel, &p, &canon_root);
+        add_symlink(&mut listing, rel, &p, &canon_root, &subs);
     }
     let ignored: BTreeSet<String> = ignored.iter().map(|r| display_join(&base, r)).collect();
     let first_new = out.files.len();
@@ -1038,6 +1069,17 @@ fn walk_dir(
         .collect();
     out.warnings.extend(notes);
     Ok(())
+}
+
+/// What a path that is not scanned in place stands for.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Linked {
+    /// A symlink pointing outside the scan root.
+    Escaped,
+    /// A git submodule (gitlink).
+    Submodule,
+    /// A symlink into a git submodule.
+    IntoSubmodule,
 }
 
 /// Discover agent files in a [`Listing`] collected by the caller, read
@@ -1248,17 +1290,25 @@ impl Classify<'_> {
         // A git submodule is content from another repository: like a
         // directory symlink out of the root, it fails closed where agent
         // files could live (#146).
+        // A symlink into a submodule is judged like a dangling one: it may
+        // name a file or a directory (#156).
         let linked = listing
             .escaped
             .into_iter()
-            .map(|(r, p, d)| (r, p, d, false))
+            .map(|(r, p, d)| (r, p, d, Linked::Escaped))
             .chain(
                 listing
                     .submodules
                     .into_iter()
-                    .map(|(r, p)| (r, p, Some(true), true)),
+                    .map(|(r, p)| (r, p, Some(true), Linked::Submodule)),
+            )
+            .chain(
+                listing
+                    .submodule_links
+                    .into_iter()
+                    .map(|(r, p)| (r, p, None, Linked::IntoSubmodule)),
             );
-        for (rel, fs_path, is_dir, submodule) in linked {
+        for (rel, fs_path, is_dir, kind) in linked {
             let as_file = || {
                 let m = effective(&rel).0;
                 (registry::match_path(&m, Origin::Walked), m)
@@ -1289,8 +1339,10 @@ impl Classify<'_> {
                     && (opts.kinds.is_empty() || opts.kinds.contains(&r.kind))
                     && (opts.tools.is_empty() || opts.tools.contains(&r.tool))
             });
-            let what = if submodule {
+            let what = if kind == Linked::Submodule {
                 "git submodule: content from another repository"
+            } else if kind == Linked::IntoSubmodule {
+                "symlink into a git submodule: content from another repository"
             } else if is_dir == Some(true) {
                 "directory symlink points outside the scan root"
             } else {
@@ -1300,8 +1352,10 @@ impl Classify<'_> {
             let Some(row) = row else {
                 out.warnings.push(Warning {
                     path,
-                    message: if submodule {
+                    message: if kind == Linked::Submodule {
                         "skipped: git submodule".into()
+                    } else if kind == Linked::IntoSubmodule {
+                        "skipped: symlink into a git submodule".into()
                     } else {
                         "skipped: symlink points outside the scan root".into()
                     },
