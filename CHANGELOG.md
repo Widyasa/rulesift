@@ -166,6 +166,11 @@ Release-gate QA findings on b256f0f (#155, #156):
   warning. Only `exclude` skips files (by default `node_modules/**` and
   `target/**`). An unreadable git index is reported with a warning instead
   of silently falling back (#155).
+- A symlink at an agent location that resolves into a git submodule placed
+  elsewhere (`.claude/skills/evil -> ../../vendor/evil`, `AGENTS.md ->
+  vendor/evil/SKILL.md`) fails closed with RS-FMT-008 in `scan` and both
+  `diff` modes, whether or not the submodule is checked out; a symlink into
+  a submodule from elsewhere is skipped with a warning (#156).
 
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0

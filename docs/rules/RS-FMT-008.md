@@ -26,6 +26,10 @@ A file at an agent-file location that RuleSift could not fully scan:
   repository, which a default CI checkout leaves empty while developers who
   clone with `--recursive` get it. Submodules elsewhere (`vendor/lib`) are
   skipped with a warning;
+- it is a symlink (to a file or a directory) at such a location that
+  resolves into a git submodule placed elsewhere, such as
+  `.claude/skills/evil -> ../../vendor/evil` (#156). A symlink into a
+  submodule from anywhere else is skipped with a warning;
 - it contains NUL bytes. The file is still scanned as text, so other rules
   fire on its content too.
 

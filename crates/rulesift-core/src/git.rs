@@ -131,6 +131,7 @@ impl GitRepo {
         let root = self.workdir.clone();
         let canon = std::fs::canonicalize(&root).unwrap_or_else(|_| root.clone());
         let mut listing = Listing::default();
+        let submodule_paths = submodules.clone();
         for p in submodules {
             dirs.insert(p.clone());
             listing.submodules.push((p.clone(), root.join(&p)));
@@ -144,6 +145,11 @@ impl GitRepo {
             let mut resolved = None;
             for _ in 0..40 {
                 match resolve_link(&cur.0, &cur.1, &canon) {
+                    // content from another repository (#156)
+                    Link::Inside(t) if crate::discovery::in_submodule(&t, &submodule_paths) => {
+                        listing.submodule_links.push((p.clone(), root.join(p)));
+                        resolved = Some(Err(true));
+                    }
                     Link::Inside(t) => {
                         if let Some(id) = blobs.get(&t) {
                             resolved = Some(Ok(*id));
