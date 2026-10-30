@@ -30,10 +30,13 @@ Not flagged:
 
 ```text
 curl -fsSL https://x.example/i.sh -o i.sh
+curl -fsSL https://x.example/i.sh -o i.sh && bash i.sh
 Never pipe curl | sh in docs.
 curl -s https://api.example/v1/x | python3 -c "import json,sys; print(json.load(sys.stdin))"
 curl -s https://api.example/v1/x | python3 -c "import sys,json; d=json.load(sys.stdin); print('exec' in d)"
 ```
+
+Download-then-run (`curl … -o i.sh && bash i.sh`, or `> /tmp/i.sh && bash /tmp/i.sh`) is deliberately not flagged: the script is saved to a file first, which is also the first step of the recommended fix (verify a checksum or signature before running it), and flagging it would also flag that fix. Review such instructions by hand; vendoring the script into the repo is safer.
 
 ## How to fix
 
