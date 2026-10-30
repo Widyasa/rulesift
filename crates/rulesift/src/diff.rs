@@ -81,6 +81,12 @@ pub fn run(g: &GlobalArgs, a: &DiffArgs) -> anyhow::Result<ExitCode> {
         lock,
     )?;
     let mut report = out.report;
+    // discovery warnings the change introduced, as `scan` prints them
+    if !g.quiet {
+        for w in &report.warnings {
+            eprintln!("warning: {}: {}", w.path, w.message);
+        }
+    }
     report.generated_at = Some(now_rfc3339());
     apply_min_severity(&mut report, p.min_severity);
     let code = exit_code(&report, p.fail_on).max(u8::from(

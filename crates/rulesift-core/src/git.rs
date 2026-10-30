@@ -114,9 +114,12 @@ impl GitRepo {
         let mut blobs: BTreeMap<String, gix::ObjectId> = BTreeMap::new();
         let mut links: BTreeMap<String, String> = BTreeMap::new();
         let mut dirs: BTreeSet<String> = BTreeSet::new();
+        let mut submodules: Vec<String> = Vec::new();
         for e in rec.records {
             let p = e.filepath.to_string();
-            if e.mode.is_tree() {
+            if e.mode.is_commit() {
+                submodules.push(p);
+            } else if e.mode.is_tree() {
                 dirs.insert(p);
             } else if e.mode.is_link() {
                 let target = self.blob(e.oid)?;
@@ -128,6 +131,10 @@ impl GitRepo {
         let root = self.workdir.clone();
         let canon = std::fs::canonicalize(&root).unwrap_or_else(|_| root.clone());
         let mut listing = Listing::default();
+        for p in submodules {
+            dirs.insert(p.clone());
+            listing.submodules.push((p.clone(), root.join(&p)));
+        }
         let mut map = blobs.clone();
         for p in blobs.keys() {
             listing.files.insert(p.clone(), root.join(p));

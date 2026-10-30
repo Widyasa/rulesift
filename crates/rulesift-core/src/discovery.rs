@@ -771,6 +771,9 @@ pub struct Listing {
     pub escaped: Vec<(String, PathBuf, Option<bool>)>,
     /// Broken symlinks inside the root (relative paths).
     pub broken: Vec<String>,
+    /// Git submodules (gitlinks): content from another repository, which a
+    /// CI checkout usually leaves empty (relative path, path) (#146).
+    pub submodules: Vec<(String, PathBuf)>,
 }
 
 /// Whether a symlink whose target does not exist points outside `root`
@@ -911,10 +914,14 @@ fn walk_dir(
                 continue;
             };
             let rel = to_slash(r);
-            if rel.is_empty() || submodule || known.contains(&rel) {
+            if rel.is_empty() || known.contains(&rel) {
                 continue;
             }
             let p = root.join(r);
+            if submodule {
+                listing.submodules.push((rel, p));
+                continue;
+            }
             match std::fs::symlink_metadata(&p) {
                 Ok(m) if m.file_type().is_symlink() => {
                     add_symlink(&mut listing, rel, &p, &canon_root);
@@ -1154,7 +1161,20 @@ impl Classify<'_> {
         // An out-of-root symlink at an agent-file location (or a directory
         // symlink where agent files would live) hides content from the scan
         // while agents may still follow it: report it as unscannable (#100).
-        for (rel, fs_path, is_dir) in listing.escaped {
+        // A git submodule is content from another repository: like a
+        // directory symlink out of the root, it fails closed where agent
+        // files could live (#146).
+        let linked = listing
+            .escaped
+            .into_iter()
+            .map(|(r, p, d)| (r, p, d, false))
+            .chain(
+                listing
+                    .submodules
+                    .into_iter()
+                    .map(|(r, p)| (r, p, Some(true), true)),
+            );
+        for (rel, fs_path, is_dir, submodule) in linked {
             let as_file = || {
                 let m = effective(&rel).0;
                 (registry::match_path(&m, Origin::Walked), m)
@@ -1185,7 +1205,9 @@ impl Classify<'_> {
                     && (opts.kinds.is_empty() || opts.kinds.contains(&r.kind))
                     && (opts.tools.is_empty() || opts.tools.contains(&r.tool))
             });
-            let what = if is_dir == Some(true) {
+            let what = if submodule {
+                "git submodule: content from another repository"
+            } else if is_dir == Some(true) {
                 "directory symlink points outside the scan root"
             } else {
                 "symlink points outside the scan root"
@@ -1194,7 +1216,11 @@ impl Classify<'_> {
             let Some(row) = row else {
                 out.warnings.push(Warning {
                     path,
-                    message: "skipped: symlink points outside the scan root".into(),
+                    message: if submodule {
+                        "skipped: git submodule".into()
+                    } else {
+                        "skipped: symlink points outside the scan root".into()
+                    },
                 });
                 continue;
             };
