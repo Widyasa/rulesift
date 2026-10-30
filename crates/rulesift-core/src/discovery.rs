@@ -394,10 +394,19 @@ fn push_file(
     row: &'static RegistryRow,
     skill_dir: Option<String>,
 ) {
+    // an agent file skipped by configuration is reported, never silent (#160)
     if !opts.kinds.is_empty() && !opts.kinds.contains(&row.kind) {
+        out.warnings.push(Warning {
+            path,
+            message: format!("skipped by config: kind `{}` is not in `kinds`", row.kind),
+        });
         return;
     }
     if !opts.tools.is_empty() && !opts.tools.contains(&row.tool) {
+        out.warnings.push(Warning {
+            path,
+            message: format!("skipped by config: tool `{}` is not in `tools`", row.tool),
+        });
         return;
     }
     if !seen.insert(reader.key(fs_path)) {
@@ -1333,11 +1342,42 @@ impl Classify<'_> {
                 .max_by_key(|d| d.len())
         };
 
+        // Agent files skipped by `exclude` or `include` are reported (#160);
+        // the default excludes (`node_modules/**`, `target/**`) stay silent.
+        let defaults = crate::config::ScanConfig::default().exclude;
+        let own: Vec<String> = opts
+            .exclude
+            .iter()
+            .filter(|p| !defaults.contains(p))
+            .cloned()
+            .collect();
+        let own_exclude = build_set(&own).unwrap_or_else(|_| GlobSet::empty());
+        let own_excluded = |rel: &str| -> bool {
+            matches_path_or_parent(&own_exclude, rel)
+                || matches_path_or_parent(&own_exclude, &anchored(rel))
+        };
+        let is_agent = |rel: &str| {
+            skill_dir_of(rel).is_some()
+                || registry::match_path(&effective(rel).0, Origin::Walked)
+                    .is_some_and(|r| r.release == Release::Mvp)
+        };
         for (rel, fs_path) in &entries {
             if excluded(rel) {
+                if own_excluded(rel) && is_agent(rel) {
+                    out.warnings.push(Warning {
+                        path: display_join(base, rel),
+                        message: "skipped by config: matches `exclude`".into(),
+                    });
+                }
                 continue;
             }
             if !included(rel) {
+                if is_agent(rel) {
+                    out.warnings.push(Warning {
+                        path: display_join(base, rel),
+                        message: "skipped by config: not matched by `include`".into(),
+                    });
+                }
                 continue;
             }
             let skill_dir = skill_dir_of(rel);

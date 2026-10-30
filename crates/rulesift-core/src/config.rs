@@ -274,6 +274,164 @@ impl Config {
     }
 }
 
+/// How `head` weakens the policy of `base` (#160): every setting that can
+/// hide a file or a finding, lower a severity or a tier, or loosen the exit
+/// policy. Empty if `head` is at least as strict. `severity_of` gives a
+/// rule's built-in severity.
+pub fn weakenings(
+    base: &Config,
+    head: &Config,
+    severity_of: &dyn Fn(&str) -> Option<Severity>,
+) -> Vec<String> {
+    let mut out = Vec::new();
+    let added = |b: &[String], h: &[String]| -> Vec<String> {
+        h.iter().filter(|x| !b.contains(x)).cloned().collect()
+    };
+    let (bs, hs) = (&base.scan, &head.scan);
+    let list = |v: &[String]| {
+        v.iter()
+            .map(|x| format!("`{x}`"))
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+    let a = added(&bs.exclude, &hs.exclude);
+    if !a.is_empty() {
+        out.push(format!("scan.exclude adds {}", list(&a)));
+    }
+    if hs.include != bs.include && !hs.include.is_empty() {
+        out.push(format!(
+            "scan.include limits the scan to {}",
+            list(&hs.include)
+        ));
+    }
+    if hs.paths != bs.paths {
+        out.push(format!("scan.paths changes to {}", list(&hs.paths)));
+    }
+    let narrowed = |b: Vec<String>, h: Vec<String>| -> Vec<String> {
+        if h.is_empty() {
+            return Vec::new();
+        }
+        if b.is_empty() {
+            return h;
+        }
+        b.into_iter().filter(|x| !h.contains(x)).collect()
+    };
+    let kinds = |v: &[crate::model::FileKind]| v.iter().map(|k| k.to_string()).collect::<Vec<_>>();
+    let all_kinds = kinds(crate::model::FileKind::ALL);
+    let bk = if bs.kinds.is_empty() {
+        all_kinds.clone()
+    } else {
+        kinds(&bs.kinds)
+    };
+    let hk = if hs.kinds.is_empty() {
+        all_kinds
+    } else {
+        kinds(&hs.kinds)
+    };
+    let dropped: Vec<String> = bk.into_iter().filter(|k| !hk.contains(k)).collect();
+    if !dropped.is_empty() {
+        out.push(format!("scan.kinds no longer scans {}", list(&dropped)));
+    }
+    let tools = |v: &[crate::model::Tool]| v.iter().map(|k| k.to_string()).collect::<Vec<_>>();
+    let t = narrowed(tools(&bs.tools), tools(&hs.tools));
+    if !t.is_empty() {
+        out.push(if bs.tools.is_empty() {
+            format!("scan.tools limits the scan to {}", list(&tools(&hs.tools)))
+        } else {
+            format!("scan.tools no longer scans {}", list(&t))
+        });
+    }
+    let a = added(&base.rules.disable, &head.rules.disable);
+    if !a.is_empty() {
+        out.push(format!("rules.disable adds {}", list(&a)));
+    }
+    for (id, sev) in &head.rules.severity_override {
+        let before = base
+            .rules
+            .severity_override
+            .get(id)
+            .copied()
+            .or_else(|| severity_of(id));
+        if before.is_none_or(|b| *sev < b) {
+            out.push(format!("rules.severity_override lowers `{id}` to {sev}"));
+        }
+    }
+    let gone: Vec<String> = base
+        .rules
+        .extra_dirs
+        .iter()
+        .filter(|d| !head.rules.extra_dirs.contains(d))
+        .cloned()
+        .collect();
+    if !gone.is_empty() {
+        out.push(format!("rules.extra_dirs drops {}", list(&gone)));
+    }
+    let new_supp: Vec<String> = head
+        .suppress
+        .iter()
+        .filter(|s| !base.suppress.contains(s))
+        .map(|s| {
+            format!(
+                "{} on {}",
+                s.rule,
+                s.path.as_deref().unwrap_or("every file")
+            )
+        })
+        .collect();
+    if !new_supp.is_empty() {
+        out.push(format!("suppress adds {}", new_supp.join(", ")));
+    }
+    let (b, h) = (&base.score, &head.score);
+    for (name, bv, hv) in [
+        ("block_at", b.block_at, h.block_at),
+        ("review_at", b.review_at, h.review_at),
+    ] {
+        if hv > bv {
+            out.push(format!("score.{name} raises {bv} to {hv}"));
+        }
+    }
+    for (name, bv, hv) in [
+        ("critical", b.critical, h.critical),
+        ("high", b.high, h.high),
+        ("medium", b.medium, h.medium),
+        ("low", b.low, h.low),
+        (
+            "toxic_combo_bonus",
+            b.toxic_combo_bonus,
+            h.toxic_combo_bonus,
+        ),
+    ] {
+        if hv < bv {
+            out.push(format!("score.{name} lowers {bv} to {hv}"));
+        }
+    }
+    if h.always_loaded_multiplier < b.always_loaded_multiplier {
+        out.push(format!(
+            "score.always_loaded_multiplier lowers {} to {}",
+            b.always_loaded_multiplier, h.always_loaded_multiplier
+        ));
+    }
+    let rank = |f: FailOn| match f {
+        FailOn::Info => 0,
+        FailOn::Review => 1,
+        FailOn::Block => 2,
+        FailOn::Never => 3,
+    };
+    if rank(head.policy.fail_on) > rank(base.policy.fail_on) {
+        out.push(format!(
+            "policy.fail_on loosens {} to {}",
+            base.policy.fail_on, head.policy.fail_on
+        ));
+    }
+    if head.policy.min_severity > base.policy.min_severity {
+        out.push(format!(
+            "policy.min_severity hides findings below {}",
+            head.policy.min_severity
+        ));
+    }
+    out
+}
+
 fn describe_toml_error(e: &toml::de::Error) -> String {
     // `toml` names the key, e.g. "unknown field `foo`, expected one of ...".
     e.message().trim().to_string()

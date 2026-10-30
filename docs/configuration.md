@@ -14,6 +14,33 @@ scanned path. Two ways to override that:
 - `RULESIFT_CONFIG=FILE` does the same from the environment. An empty value
   disables config discovery.
 
+Which config applies depends on who controls it (#160):
+
+- **`rulesift diff`** (the GitHub Action's pull request mode) and MCP
+  `diff_refs` read `rulesift.toml` (and `rulesift.lock`) from the **base**
+  revision, searching upward from the scanned directory in the base tree;
+  without one there, the defaults apply. A pull request cannot weaken the
+  policy that checks it. Changes to `rulesift.toml`, `rulesift.lock`, or
+  custom rule files are reported:
+  [RS-LOCK-004](rules/RS-LOCK-004.md) (exit 1) when they weaken the policy,
+  [RS-LOCK-005](rules/RS-LOCK-005.md) (review only) otherwise. Custom rules
+  in `extra_dirs` are read from the working tree, so changing them is
+  RS-LOCK-004. `--config` and `RULESIFT_CONFIG` still win (an empty
+  `RULESIFT_CONFIG` means the defaults); point them outside the checkout,
+  never at a file the pull request can change.
+- **`rulesift scan`** uses the config of the checkout it scans: that is your
+  own policy on your own machine. When you vet third-party content (a
+  downloaded skill), a `rulesift.toml` inside it would apply to its own
+  scan; pass `--config` or `RULESIFT_CONFIG=` (empty: defaults) instead.
+  The Action runs `scan` only outside pull requests.
+- **MCP `scan_path`** uses the config of the server's working directory,
+  never one inside the scanned path, so a copied skill cannot bring its own
+  policy.
+
+Every agent file skipped by configuration (`exclude`, `include`, `kinds`,
+`tools`) gets a warning (`skipped by config: …`), except files under the
+default excludes `node_modules/**` and `target/**`.
+
 Unknown keys are an error.
 
 ## `[scan]`
@@ -160,4 +187,12 @@ lists the RS-LOCK findings. `rulesift scan <dir>` and `rulesift diff` against
 the working tree check the lock; `scan` reports violations (and prints a
 warning) without changing its exit code, while `verify` and `diff` exit 1.
 `lock` is `null` when the lock was not checked: a scan of single files or of
-several paths, or `diff --head` between two revisions.
+several paths, or `diff --head` between two revisions without policy changes.
+
+In `diff` against the working tree, the **base** revision's `rulesift.lock`
+is the approval (#160): a pull request that changes a locked file and runs
+`rulesift lock` passes, with an [RS-LOCK-005](rules/RS-LOCK-005.md) review
+note listing what its lock approves; a pull request that deletes the lock
+or drops entries for files that still exist gets
+[RS-LOCK-004](rules/RS-LOCK-004.md) (exit 1). `rulesift verify` checks the
+working tree against its own `rulesift.lock` and has no base revision.

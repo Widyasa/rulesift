@@ -315,7 +315,7 @@ source = ".mcp.json"
 name = "helper"
 fingerprint = "<sha256 of canonical JSON of the server entry with env VALUES replaced by '<redacted>'>"
 ```
-Hashing: bytes with CRLF normalized to LF, nothing else (invisible characters must change the hash). Entries are sorted by path/name. Lock checks: RS-LOCK-001 changed, RS-LOCK-002 new and unlocked, RS-LOCK-003 locked but missing.
+Hashing: bytes with CRLF normalized to LF, nothing else (invisible characters must change the hash). Entries are sorted by path/name. Lock checks: RS-LOCK-001 changed, RS-LOCK-002 new and unlocked, RS-LOCK-003 locked but missing. In `diff` mode the base revision's `rulesift.toml` and `rulesift.lock` gate the change, and changes to them are RS-LOCK-004 (policy weakened, exit 1) or RS-LOCK-005 (policy or lock changed, review note) (#160).
 
 ---
 
@@ -368,6 +368,8 @@ Severity: `critical | high | medium | low`. "Detector" means implemented in Rust
 | RS-LOCK-001 | Locked agent file or MCP server changed | high | lock | lock verifier |
 | RS-LOCK-002 | New agent file not in lock | medium | lock | lock verifier |
 | RS-LOCK-003 | Locked agent file missing | low | lock | lock verifier |
+| RS-LOCK-004 | RuleSift policy weakened (diff mode, #160) | high | lock | diff policy check |
+| RS-LOCK-005 | RuleSift policy or lock changed (diff mode, review note, #160) | medium | lock | diff policy check |
 
 Context rule: findings inside a fenced code block whose info string is a non-shell language (e.g. `json`, `python`) keep their severity for EXEC/SEC/EXF rules (code is still copy-pasted by agents), but INJ rules only scan text scopes.
 

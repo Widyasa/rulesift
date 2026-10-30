@@ -34,6 +34,8 @@ RuleSift ships these built-in rules (`rules/builtin/*.yaml`) and three lock chec
 | [RS-LOCK-001](RS-LOCK-001.md) | high | Locked agent file or MCP server changed |
 | [RS-LOCK-002](RS-LOCK-002.md) | medium | New agent file not in lock |
 | [RS-LOCK-003](RS-LOCK-003.md) | low | Locked agent file missing |
+| [RS-LOCK-004](RS-LOCK-004.md) | high | RuleSift policy weakened |
+| [RS-LOCK-005](RS-LOCK-005.md) | medium | RuleSift policy or lock changed |
 | [RS-MCP-001](RS-MCP-001.md) | high | MCP server command runs a shell |
 | [RS-MCP-002](RS-MCP-002.md) | high | Literal secret in MCP env or headers |
 | [RS-MCP-003](RS-MCP-003.md) | high | Unpinned package runner |

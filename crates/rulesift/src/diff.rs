@@ -1,9 +1,7 @@
 //! `rulesift diff --base <REF> [--head <REF>] [PATHS...]` (PRD §6.3).
 
 use crate::cli::GlobalArgs;
-use crate::scan::{
-    apply_min_severity, emit, exit_code, now_rfc3339, prepare, OutputArgs, RenderCtx,
-};
+use crate::scan::{apply_min_severity, emit, exit_code, now_rfc3339, OutputArgs, RenderCtx};
 use clap::Args;
 use rulesift_core::diff::{diff, DiffOptions};
 use rulesift_core::git::GitRepo;
@@ -57,18 +55,19 @@ pub fn run(g: &GlobalArgs, a: &DiffArgs) -> anyhow::Result<ExitCode> {
     };
     let repo = GitRepo::discover(&dir)?;
     let workdir = repo.workdir().to_path_buf();
-    // scan options and rules as for `scan`, config resolved from the first path
-    let mut p = prepare(g, std::slice::from_ref(&dir), &a.out)?;
+    // scan options and rules as for `scan`, but the policy (config, lock)
+    // comes from the base revision: a change cannot weaken the gate that
+    // checks it (#160)
+    let dir_rel = repo_prefix(&workdir, &dir)?;
+    let crate::policy::DiffPolicy {
+        prepared: mut p,
+        lock,
+    } = crate::policy::prepare_diff(g, &repo, &dir, &dir_rel, &a.base, a.head.as_deref(), &a.out)?;
     p.opts.root = ".".into();
     let mut prefixes = Vec::new();
     for x in &a.paths {
         prefixes.push(repo_prefix(&workdir, x)?);
     }
-    let lock = if a.head.is_none() {
-        Some(crate::lock::status(g, &workdir)?)
-    } else {
-        None
-    };
     let out = diff(
         &repo,
         &p.rules,
@@ -89,12 +88,8 @@ pub fn run(g: &GlobalArgs, a: &DiffArgs) -> anyhow::Result<ExitCode> {
     }
     report.generated_at = Some(now_rfc3339());
     apply_min_severity(&mut report, p.min_severity);
-    let code = exit_code(&report, p.fail_on).max(u8::from(
-        report
-            .lock
-            .as_ref()
-            .is_some_and(|l| !l.violations.is_empty()),
-    ));
+    let code = exit_code(&report, p.fail_on)
+        .max(u8::from(crate::policy::lock_fails(report.lock.as_ref())));
     emit(
         g,
         &a.out,

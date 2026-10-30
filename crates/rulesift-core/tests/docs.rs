@@ -74,6 +74,8 @@ fn every_rule_has_complete_docs() {
         ),
         ("RS-LOCK-002", "New agent file not in lock", "medium"),
         ("RS-LOCK-003", "Locked agent file missing", "low"),
+        ("RS-LOCK-004", "RuleSift policy weakened", "high"),
+        ("RS-LOCK-005", "RuleSift policy or lock changed", "medium"),
     ] {
         check(id, title, sev, &index);
     }
@@ -87,5 +89,5 @@ fn every_rule_has_complete_docs() {
                 .is_some_and(|x| x == "md")
         })
         .count();
-    assert_eq!(n, rules.len() + 3 + 1, "stale doc files in docs/rules");
+    assert_eq!(n, rules.len() + 5 + 1, "stale doc files in docs/rules");
 }

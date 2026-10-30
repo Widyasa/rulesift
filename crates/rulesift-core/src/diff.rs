@@ -427,6 +427,8 @@ pub fn lock_detail(v: &LockViolation) -> String {
         v.path.clone()
     };
     let what = match v.rule_id.as_str() {
+        // policy changes (#160) carry their own message
+        "RS-LOCK-004" | "RS-LOCK-005" => v.message.trim_end_matches('.').to_string(),
         "RS-LOCK-001" => format!("hash of {subject} changed without approval"),
         "RS-LOCK-002" => format!("{subject} is new and not in the lock"),
         _ => format!("{subject} is locked but missing"),
@@ -585,6 +587,17 @@ pub fn diff(
         })
         .collect();
     for v in lock.iter().flat_map(|l| &l.violations) {
+        if matches!(v.rule_id.as_str(), "RS-LOCK-004" | "RS-LOCK-005") {
+            // a change to the policy itself (#160)
+            changes.push(change(
+                &v.path,
+                ChangeOp::Lock,
+                "policy",
+                None,
+                lock_detail(v),
+            ));
+            continue;
+        }
         changes.push(change(
             "rulesift.lock",
             ChangeOp::Lock,

@@ -108,8 +108,31 @@ pub struct Prepared {
 
 /// Resolve config, rules, and options.
 pub fn prepare(g: &GlobalArgs, paths: &[PathBuf], o: &OutputArgs) -> anyhow::Result<Prepared> {
-    let start = config_start(paths);
-    let (cfg, base, cfg_dir) = common::load_config_with_dir(g, &start)?;
+    prepare_from(g, &config_start(paths), paths, o)
+}
+
+/// Like [`prepare`], with config discovery starting at `start`.
+pub fn prepare_from(
+    g: &GlobalArgs,
+    start: &Path,
+    paths: &[PathBuf],
+    o: &OutputArgs,
+) -> anyhow::Result<Prepared> {
+    let (cfg, base, cfg_dir) = common::load_config_with_dir(g, start)?;
+    prepare_with(g, cfg, base, cfg_dir, paths, o)
+}
+
+/// Like [`prepare`], with an already loaded config (`base`: the directory
+/// relative paths in it resolve against; `cfg_dir`: its canonical
+/// directory, if it came from a file).
+pub fn prepare_with(
+    g: &GlobalArgs,
+    cfg: rulesift_core::config::Config,
+    base: PathBuf,
+    cfg_dir: Option<PathBuf>,
+    paths: &[PathBuf],
+    o: &OutputArgs,
+) -> anyhow::Result<Prepared> {
     let rules = common::build_rules(g, &cfg, &base, &o.rules, &o.disable)?;
     let paths: Vec<PathBuf> = if paths.is_empty() {
         let cwd = std::env::current_dir().unwrap_or_default();

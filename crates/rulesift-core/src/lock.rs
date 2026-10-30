@@ -244,7 +244,12 @@ pub fn read(path: &Path) -> Result<Option<Lockfile>> {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
         Err(e) => return Err(CoreError::io(path, e)),
     };
-    let lock: Lockfile = toml::from_str(&text).map_err(|e| CoreError::Lock {
+    parse(&text, path).map(Some)
+}
+
+/// Parse lockfile text (`path` is used in error messages only).
+pub fn parse(text: &str, path: &Path) -> Result<Lockfile> {
+    let lock: Lockfile = toml::from_str(text).map_err(|e| CoreError::Lock {
         path: path.to_path_buf(),
         message: e.message().to_string(),
     })?;
@@ -254,7 +259,7 @@ pub fn read(path: &Path) -> Result<Option<Lockfile>> {
             message: format!("unsupported version {} (expected 1)", lock.version),
         });
     }
-    Ok(Some(lock))
+    Ok(lock)
 }
 
 /// Write a lockfile.

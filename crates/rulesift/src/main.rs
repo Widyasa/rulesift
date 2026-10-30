@@ -9,6 +9,7 @@ mod explain;
 mod init;
 mod lock;
 mod mcp;
+mod policy;
 mod reveal;
 mod rules;
 mod scan;

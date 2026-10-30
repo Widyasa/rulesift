@@ -33,8 +33,12 @@ pub fn current(g: &GlobalArgs, root: &Path) -> anyhow::Result<Lockfile> {
         anyhow::bail!("{} is not a directory", root.display());
     }
     let (cfg, _) = common::load_config(g, root)?;
-    let opts = DiscoveryOptions::from_config(&cfg.scan);
-    let d = discover(&[root.to_path_buf()], &opts)?;
+    current_with(&DiscoveryOptions::from_config(&cfg.scan), root)
+}
+
+/// Compute the current lock for `root` with the given discovery options.
+pub fn current_with(opts: &DiscoveryOptions, root: &Path) -> anyhow::Result<Lockfile> {
+    let d = discover(&[root.to_path_buf()], opts)?;
     let analyzed: Vec<_> = d.files.iter().map(analyze_file).collect();
     Ok(lock::compute(root, &d.files, &analyzed)?)
 }

@@ -65,6 +65,23 @@ pub fn to_markdown(report: &Report) -> String {
         Tier::Ok => "✅",
     };
     let _ = writeln!(body, "### {icon} {}\n", verdict(&r));
+    let failing = r.lock.as_ref().map_or(0, |l| {
+        l.violations
+            .iter()
+            .filter(|v| v.rule_id != "RS-LOCK-005")
+            .count()
+    });
+    if failing > 0 {
+        let _ = writeln!(
+            body,
+            "**{} fail this check** (see the `!` lines below).\n",
+            plural(
+                failing,
+                "lock or policy violation",
+                "lock or policy violations"
+            )
+        );
+    }
     let _ = writeln!(
         body,
         "Scanned {}: {} block, {} review, {} info, {} ok. Repo score **{}** ({}).\n",
