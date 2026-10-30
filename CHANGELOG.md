@@ -136,5 +136,12 @@ Release-gate QA findings on 73c04df (#132–#138):
   always-loaded multiplier (1.5), like `settings.json`, and an RS-CFG-002
   finding raises its file to at least `review` in every location (#138).
 
+Release-gate QA findings on 7edbf51 (#145–#147):
+
+- `.gitignore`, `.ignore`, and `.git/info/exclude` no longer hide files
+  tracked in git: `scan` and the working-tree `diff` (the Action's pull
+  request mode) add every tracked file under the scanned path to the walk,
+  so a PR cannot hide a changed agent file by also ignoring it (#145).
+
 [Unreleased]: https://github.com/Widyasa/rulesift/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Widyasa/rulesift/releases/tag/v0.1.0

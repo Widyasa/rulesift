@@ -309,6 +309,28 @@ impl GitRepo {
     }
 }
 
+/// Paths tracked in the index of the git work tree that contains `dir`:
+/// (canonical work tree, repo-relative paths with `true` for submodules).
+/// `None` outside a git work tree or if the index cannot be read.
+pub fn tracked(dir: &Path) -> Option<(PathBuf, Vec<(String, bool)>)> {
+    let repo = gix::discover(dir).ok()?;
+    let wd = repo.workdir()?.to_path_buf();
+    let wd = std::fs::canonicalize(&wd).unwrap_or(wd);
+    let index = repo.index_or_empty().ok()?;
+    let out = index
+        .entries()
+        .iter()
+        .filter(|e| e.mode != gix::index::entry::Mode::DIR)
+        .map(|e| {
+            (
+                e.path(&index).to_string(),
+                e.mode == gix::index::entry::Mode::COMMIT,
+            )
+        })
+        .collect();
+    Some((wd, out))
+}
+
 /// Where a symlink in a git tree points.
 enum Link {
     /// A repo-relative path inside the repository.
